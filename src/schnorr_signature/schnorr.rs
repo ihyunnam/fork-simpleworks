@@ -42,12 +42,41 @@ pub struct SecretKey<C: CurveGroup> {
     pub public_key: PublicKey<C>,
 }
 
-// impl<C: CurveGroup> ToBytes for SecretKey<C> {
-//     #[inline]
-//     fn write<W: Write>(&self, writer: W) -> IoResult<()> {
-//         self.secret_key.write(writer)
-//     }
-// }
+/* Dummy impl */
+impl<C: CurveGroup> CanonicalSerialize for SecretKey<C> {
+    // #[inline]
+    // fn write<W: Write>(&self, writer: W) -> IoResult<()> {
+    //     self.secret_key.write(writer)
+    // }
+    fn compressed_size(&self) -> usize {
+        0
+    }
+
+    fn serialize_compressed<W: Write>(&self, writer: W) -> Result<(), ark_serialize::SerializationError> {
+        Ok(())
+    }
+
+    fn serialize_uncompressed<W: Write>(&self, writer: W) -> Result<(), ark_serialize::SerializationError> {
+        Ok(())
+    }
+
+    fn serialize_with_mode<W: Write>(
+            &self,
+            writer: W,
+            compress: ark_serialize::Compress,
+        ) -> Result<(), ark_serialize::SerializationError> {
+        Ok(())
+    }
+
+    fn serialized_size(&self, compress: ark_serialize::Compress) -> usize {
+        0
+    }
+
+    fn uncompressed_size(&self) -> usize {
+        0
+    }
+
+}
 
 #[derive(Clone, Default, Debug)]
 pub struct Signature<C: CurveGroup> {

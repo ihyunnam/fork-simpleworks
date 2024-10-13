@@ -4,3 +4,5 @@ mod gadgets;
 mod hash;
 // mod marlin;
 // mod merkle_tree;
+
+fn main() {}

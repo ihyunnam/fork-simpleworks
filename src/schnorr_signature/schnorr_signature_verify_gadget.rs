@@ -9,14 +9,17 @@ use super::{
     // Blake2sParametersVar, ConstraintF,
 };
 use ark_crypto_primitives::signature::SigVerifyGadget;
-use ark_ec::CurveGroup;
+use ark_ec::{CurveGroup, Group};
 use ark_ff::{Field, MontBackend};
+use ark_r1cs_std::alloc::AllocationMode;
+use ark_r1cs_std::fields::fp::FpVar;
 use ark_r1cs_std::ToBitsGadget;
 use ark_r1cs_std::{
     prelude::{AllocVar, Boolean, CurveVar, EqGadget, GroupOpsBounds},
     uint8::UInt8,
 };
-use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
+use ark_relations::r1cs::{ConstraintSystem, ConstraintSystemRef, Namespace, SynthesisError};
+use std::borrow::Borrow;
 use std::marker::PhantomData;
 
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
@@ -39,7 +42,10 @@ where
     C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
-    // UInt8<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>: ark_sponge::constraints::AbsorbGadget<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>
+    Namespace<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>: From<Namespace<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>>,
+    <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
+    UInt8<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>: ark_sponge::constraints::AbsorbGadget<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
+    C::BaseField: Field<BasePrimeField = ark_ed_on_bn254::Fq>,
 {
     type ParametersVar = ParametersVar<C, GC>;
     type PublicKeyVar = PublicKeyVar<C, GC>;
@@ -76,8 +82,31 @@ where
         // )?;
         // let obtained_verifier_challenge = ROGadget::evaluate(&b2s_params, &hash_input)?.0;
         let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
-        // POSEIDON RETURNS A FIELD ELEM, EITHER FR OR CONSTRAINTF<C>
+        // POSEIDON RETURNS FPVAR, EITHER FR OR CONSTRAINTF<C>
+        
+        // let mut bits: Vec<ark_r1cs_std::prelude::Boolean<ConstraintF<C>>> = Vec::new();
+        // for byte in verifier_challenge {
+        //     let byte_bits = byte.to_bits_le()?;
+        //     bits.extend(byte_bits);
+        // }
 
-        obtained_verifier_challenge.is_eq(&verifier_challenge)
+        // let verifier_challenge_fe = FpVar::<ConstraintF<C>>::new_variable(
+        //     cs.clone(),
+        //     || Ok(ConstraintF::<C>::from_le_bits(&bits)),
+        //     AllocationMode::Witness,
+        // ).unwrap();
+
+        // Convert the bits back into an FpVar
+        // let verifier_challenge_fe = FpVar::<ConstraintF<C>>::from(&bits);
+        // let verifier_challenge_fe = verifier_challenge.to_bigint().to_bytes_le()?;
+        let bits = obtained_verifier_challenge.to_bits_le()?;
+        let mut bytes = Vec::new();
+        for chunk in bits.chunks(8) {
+            // Convert each 8-bit chunk to a UInt8<ConstraintF<C>>
+            let byte = UInt8::<ConstraintF<C>>::from_bits_le(chunk);
+            bytes.push(byte);
+        }
+
+        bytes.is_eq(&verifier_challenge)
     }
 }
