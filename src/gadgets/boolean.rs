@@ -37,7 +37,7 @@ impl<F: Field> BitwiseOperationGadget<F> for Boolean<F> {
     where
         Self: std::marker::Sized,
     {
-        Ok(self.or(other_gadget)?.not())
+        Ok(self.or(other_gadget).unwrap().not())
     }
 
     fn or(&self, other_gadget: &Self) -> anyhow::Result<Self>

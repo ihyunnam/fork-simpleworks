@@ -1,5 +1,6 @@
-use ark_ec::ProjectiveCurve;
-use ark_ed_on_bls12_377::{constraints::EdwardsVar, EdwardsProjective};
+use ark_ec::CurveGroup;
+use ark_ed_on_bn254::{EdwardsProjective, constraints::EdwardsVar};
+// use ark_ed_on_bls12_377::{constraints::EdwardsVar, EdwardsProjective};
 use ark_ff::Field;
 
 pub mod schnorr;
@@ -17,15 +18,18 @@ pub use public_key_var::PublicKeyVar;
 pub mod schnorr_signature_verify_gadget;
 pub use schnorr_signature_verify_gadget::SchnorrSignatureVerifyGadget;
 
-pub mod blake2s;
-pub use blake2s::ParametersVar as Blake2sParametersVar;
+// pub mod blake2s;
+// pub use blake2s::ParametersVar as Blake2sParametersVar;
+
+// pub mod self::hash;
+// pub use 
 
 use self::schnorr::Schnorr;
 
-pub type ConstraintF<C> = <<C as ProjectiveCurve>::BaseField as Field>::BasePrimeField;
+pub type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
 
 pub type SimpleSchnorrConstraintF =
-    <<EdwardsProjective as ProjectiveCurve>::BaseField as Field>::BasePrimeField;
+    <<EdwardsProjective as CurveGroup>::BaseField as Field>::BasePrimeField;
 
 pub type SimpleSchnorrParameters = Parameters<EdwardsProjective>;
 pub type SimpleSchnorrPublicKey = PublicKey<EdwardsProjective>;

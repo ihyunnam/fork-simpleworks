@@ -23,7 +23,7 @@ pub struct Address<F: Field> {
 
 impl<ConstraintF: Field> Address<ConstraintF> {
     pub fn to_bytes_be(&self) -> Result<Vec<UInt8<ConstraintF>>> {
-        let mut bits = self.to_bits_le()?;
+        let mut bits = self.to_bits_le().unwrap();
         bits.reverse();
 
         let bytes_be = bits
@@ -110,10 +110,10 @@ impl<F: Field> R1CSVar<F> for Address<F> {
 
 impl<F: Field> ToFieldElements<F> for Address<F> {
     fn to_field_elements(&self) -> Result<Vec<F>> {
-        let bits_le = self.bytes.to_bits_le()?;
+        let bits_le = self.bytes.to_bits_le().unwrap();
         let mut result = Vec::with_capacity(63 * 8);
         for boolean_gadget_value in bits_le.iter() {
-            if boolean_gadget_value.value()? {
+            if boolean_gadget_value.value().unwrap() {
                 result.push(F::one())
             } else {
                 result.push(F::zero())
@@ -201,7 +201,7 @@ impl<F: Field> FromBytesGadget<F> for Address<F> {
         ensure!(bytes.len() == 63, "Address must be 63 bytes long");
         let mut value = [0_u8; 63];
         for (primitive_byte, byte_gadget) in value.iter_mut().zip(bytes) {
-            *primitive_byte = byte_gadget.value()?;
+            *primitive_byte = byte_gadget.value().unwrap();
         }
 
         Ok(Self {
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_address_to_string() {
-        let cs = ConstraintSystem::<ark_ed_on_bls12_377::Fq>::new_ref();
+        let cs = ConstraintSystem::<ark_bn254::Fr>::new_ref();
         let address = AddressGadget::new_witness(Namespace::new(cs.clone(), None), || {
             Ok(b"aleo11111111111111111111111111111111111111111111111111111111111")
         })
@@ -264,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_conditionally_select_true_value() {
-        let cs = ConstraintSystem::<ark_ed_on_bls12_377::Fq>::new_ref();
+        let cs = ConstraintSystem::<ark_bn254::Fr>::new_ref();
 
         let condition = Boolean::<ConstraintF>::new_witness(cs.clone(), || Ok(true)).unwrap();
         let true_value = AddressGadget::new_witness(Namespace::new(cs.clone(), None), || {
@@ -287,7 +287,7 @@ mod tests {
 
     #[test]
     fn test_conditionally_select_false_value() {
-        let cs = ConstraintSystem::<ark_ed_on_bls12_377::Fq>::new_ref();
+        let cs = ConstraintSystem::<ark_bn254::Fr>::new_ref();
 
         let condition = Boolean::<ConstraintF>::new_witness(cs.clone(), || Ok(false)).unwrap();
         let true_value = AddressGadget::new_witness(Namespace::new(cs.clone(), None), || {
@@ -310,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_from_bytes_le_gadget() {
-        let cs = ConstraintSystem::<ark_ed_on_bls12_377::Fq>::new_ref();
+        let cs = ConstraintSystem::<ark_bn254::Fr>::new_ref();
 
         let address = AddressGadget::new_witness(Namespace::new(cs, None), || {
             Ok(b"aleo11111111111111111111111111111111111111111111111111111111111")
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_from_bytes_be_gadget() {
-        let cs = ConstraintSystem::<ark_ed_on_bls12_377::Fq>::new_ref();
+        let cs = ConstraintSystem::<ark_bn254::Fr>::new_ref();
 
         let address = AddressGadget::new_witness(Namespace::new(cs, None), || {
             Ok(b"aleo11111111111111111111111111111111111111111111111111111111111")

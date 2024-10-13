@@ -33,7 +33,7 @@ impl<F: Field> IsWitness<F> for Int8<F> {}
 impl<F: Field> ToBytesGadget<F> for Int8<F> {
     fn to_bytes(&self) -> Result<Vec<ark_r1cs_std::uint8::UInt8<F>>, SynthesisError> {
         Ok(self
-            .to_bits_le()?
+            .to_bits_le().unwrap()
             .chunks(8)
             .map(UInt8::from_bits_le)
             .collect())
@@ -60,7 +60,7 @@ impl<ConstraintF: Field> AllocVar<i8, ConstraintF> for Int8<ConstraintF> {
 
         let mut bits = [Boolean::FALSE; 8];
         for (b, v) in bits.iter_mut().zip(&values) {
-            *b = Boolean::new_variable(cs.clone(), || v.get(), mode)?;
+            *b = Boolean::new_variable(cs.clone(), || v.get(), mode).unwrap();
         }
         Ok(Self { bits, value })
     }
@@ -76,7 +76,7 @@ impl<F: Field> R1CSVar<F> for Int8<F> {
     fn value(&self) -> Result<Self::Value, ark_relations::r1cs::SynthesisError> {
         let mut value = None;
         for (i, bit) in self.bits.iter().enumerate() {
-            let b = i8::from(bit.value()?);
+            let b = i8::from(bit.value().unwrap());
             value = match value {
                 Some(value) => Some(value + (b << i)),
                 None => Some(b << i),
@@ -103,7 +103,7 @@ impl<F: Field> Int8<F> {
 
     pub fn from_bits_le(bits: &[Boolean<F>]) -> Result<Self> {
         assert_eq!(bits.len(), 8, "Invalid array length, should be 8");
-        let bits = <&[Boolean<F>; 8]>::try_from(bits)?.clone();
+        let bits = <&[Boolean<F>; 8]>::try_from(bits).unwrap().clone();
 
         let mut value = Some(0_i8);
         for (i, b) in bits.iter().enumerate() {
@@ -163,7 +163,7 @@ impl<ConstraintF: Field> CondSelectGadget<ConstraintF> for Int8<ConstraintF> {
             .map(|(t, f)| cond.select(t, f));
         let mut bits = [Boolean::FALSE; 8];
         for (result, new) in bits.iter_mut().zip(selected_bits) {
-            *result = new?;
+            *result = new.unwrap();
         }
 
         let value = cond.value().ok().and_then(|cond| {
@@ -183,11 +183,11 @@ impl<F: Field> BitwiseOperationGadget<F> for Int8<F> {
         Self: std::marker::Sized,
     {
         let result = zip_bits_and_apply(
-            self.to_bits_le()?,
-            other_gadget.to_bits_le()?,
+            self.to_bits_le().unwrap(),
+            other_gadget.to_bits_le().unwrap(),
             |first_bit, second_bit| first_bit.and(&second_bit),
-        )?;
-        let new_value = Int8::from_bits_le(&result)?;
+        ).unwrap();
+        let new_value = Int8::from_bits_le(&result).unwrap();
         Ok(new_value)
     }
 
@@ -196,11 +196,11 @@ impl<F: Field> BitwiseOperationGadget<F> for Int8<F> {
         Self: std::marker::Sized,
     {
         let result = zip_bits_and_apply(
-            self.to_bits_le()?,
-            other_gadget.to_bits_le()?,
-            |first_bit, second_bit| Ok(first_bit.and(&second_bit)?.not()),
-        )?;
-        let new_value = Int8::from_bits_le(&result)?;
+            self.to_bits_le().unwrap(),
+            other_gadget.to_bits_le().unwrap(),
+            |first_bit, second_bit| Ok(first_bit.and(&second_bit).unwrap().not()),
+        ).unwrap();
+        let new_value = Int8::from_bits_le(&result).unwrap();
         Ok(new_value)
     }
 
@@ -209,11 +209,11 @@ impl<F: Field> BitwiseOperationGadget<F> for Int8<F> {
         Self: std::marker::Sized,
     {
         let result = zip_bits_and_apply(
-            self.to_bits_le()?,
-            other_gadget.to_bits_le()?,
-            |first_bit, second_bit| Ok(first_bit.or(&second_bit)?.not()),
-        )?;
-        let new_value = Int8::from_bits_le(&result)?;
+            self.to_bits_le().unwrap(),
+            other_gadget.to_bits_le().unwrap(),
+            |first_bit, second_bit| Ok(first_bit.or(&second_bit).unwrap().not()),
+        ).unwrap();
+        let new_value = Int8::from_bits_le(&result).unwrap();
         Ok(new_value)
     }
 
@@ -222,11 +222,11 @@ impl<F: Field> BitwiseOperationGadget<F> for Int8<F> {
         Self: std::marker::Sized,
     {
         let result = zip_bits_and_apply(
-            self.to_bits_le()?,
-            other_gadget.to_bits_le()?,
+            self.to_bits_le().unwrap(),
+            other_gadget.to_bits_le().unwrap(),
             |first_bit, second_bit| first_bit.xor(&second_bit),
-        )?;
-        let new_value = Int8::from_bits_le(&result)?;
+        ).unwrap();
+        let new_value = Int8::from_bits_le(&result).unwrap();
         Ok(new_value)
     }
 
@@ -235,11 +235,11 @@ impl<F: Field> BitwiseOperationGadget<F> for Int8<F> {
         Self: std::marker::Sized,
     {
         let result = zip_bits_and_apply(
-            self.to_bits_le()?,
-            other_gadget.to_bits_le()?,
+            self.to_bits_le().unwrap(),
+            other_gadget.to_bits_le().unwrap(),
             |first_bit, second_bit| first_bit.or(&second_bit),
-        )?;
-        let new_value = Int8::from_bits_le(&result)?;
+        ).unwrap();
+        let new_value = Int8::from_bits_le(&result).unwrap();
         Ok(new_value)
     }
 }
@@ -249,8 +249,8 @@ impl<F: Field> ArithmeticGadget<F> for Int8<F> {
     where
         Self: std::marker::Sized,
     {
-        let addend = addend.to_bits_le()?;
-        let augend = self.clone().to_bits_le()?;
+        let addend = addend.to_bits_le().unwrap();
+        let augend = self.clone().to_bits_le().unwrap();
         let mut sum = vec![Boolean::<F>::FALSE; augend.len()];
         let mut carry = Boolean::<F>::FALSE;
         for (i, (augend_bit, addend_bit)) in augend.iter().zip(addend).enumerate() {
@@ -267,17 +267,17 @@ impl<F: Field> ArithmeticGadget<F> for Int8<F> {
             // sum[i] = (!carry & (augend_bit ^ addend_bit)) | (carry & !(augend_bit ^ addend_bit))
             //        = augend_bit ^ addend_bit ^ carry
             *sum.get_mut(i)
-                .ok_or_else(|| anyhow!("Error accessing the index of sum"))? =
-                carry.xor(augend_bit)?.xor(&addend_bit)?;
+                .ok_or_else(|| anyhow!("Error accessing the index of sum")).unwrap() =
+                carry.xor(augend_bit).unwrap().xor(&addend_bit).unwrap();
             // To simplify things, the variable carry acts for both the carry in and
             // the carry out.
             // The carry out is augend & addend when the carry in is 0, and it is
             // augend | addend when the carry in is 1.
             // carry = carry.not()
-            carry = (carry.not().and(&(augend_bit.and(&addend_bit)?))?)
-                .or(&(carry.and(&(augend_bit.or(&addend_bit)?))?))?;
+            carry = (carry.not().and(&(augend_bit.and(&addend_bit).unwrap())).unwrap())
+                .or(&(carry.and(&(augend_bit.or(&addend_bit).unwrap())).unwrap())).unwrap();
         }
-        let result = Self::from_bits_le(&sum)?;
+        let result = Self::from_bits_le(&sum).unwrap();
         Ok(result)
     }
 
@@ -286,26 +286,26 @@ impl<F: Field> ArithmeticGadget<F> for Int8<F> {
         Self: std::marker::Sized,
     {
         ensure!(
-            self.value()?.checked_sub(subtrahend.value()?).is_some(),
+            self.value().unwrap().checked_sub(subtrahend.value().unwrap()).is_some(),
             "Subtraction underflow"
         );
         let minuend_as_augend = Self::from_bits_le(
             &(self
-                .to_bits_le()?
+                .to_bits_le().unwrap()
                 .into_iter()
                 .map(|bit| bit.not())
                 .collect::<Vec<Boolean<F>>>()),
-        )?;
+        ).unwrap();
 
-        let partial_result = minuend_as_augend.add(subtrahend)?;
+        let partial_result = minuend_as_augend.add(subtrahend).unwrap();
 
         let difference = &partial_result
-            .to_bits_le()?
+            .to_bits_le().unwrap()
             .into_iter()
             .map(|bit| bit.not())
             .collect::<Vec<Boolean<F>>>();
 
-        let result = Self::from_bits_le(difference)?;
+        let result = Self::from_bits_le(difference).unwrap();
         Ok(result)
     }
 
@@ -313,11 +313,11 @@ impl<F: Field> ArithmeticGadget<F> for Int8<F> {
     where
         Self: std::marker::Sized,
     {
-        let mut product = Self::new_witness(constraint_system.clone(), || Ok(0))?;
-        for (i, multiplier_bit) in self.to_bits_le()?.iter().enumerate() {
+        let mut product = Self::new_witness(constraint_system.clone(), || Ok(0)).unwrap();
+        for (i, multiplier_bit) in self.to_bits_le().unwrap().iter().enumerate() {
             // If the multiplier bit is a 1.
-            let addend = Self::shift_left(multiplicand, i, constraint_system.clone())?;
-            product = Self::conditionally_select(multiplier_bit, &product.add(&addend)?, &product)?;
+            let addend = Self::shift_left(multiplicand, i, constraint_system.clone()).unwrap();
+            product = Self::conditionally_select(multiplier_bit, &product.add(&addend).unwrap(), &product).unwrap();
         }
         Ok(product)
     }
@@ -326,62 +326,62 @@ impl<F: Field> ArithmeticGadget<F> for Int8<F> {
     where
         Self: std::marker::Sized,
     {
-        ensure!(divisor.value()? != 0_i8, "attempt to divide by zero");
+        ensure!(divisor.value().unwrap() != 0_i8, "attempt to divide by zero");
         let mut quotient = self.clone();
-        let mut aux = Self::new_witness(constraint_system.clone(), || Ok(0))?;
+        let mut aux = Self::new_witness(constraint_system.clone(), || Ok(0)).unwrap();
         let dividend_sign = self
-            .to_bits_be()?
+            .to_bits_be().unwrap()
             .get(0)
-            .ok_or_else(|| anyhow!("Could not parse dividend bits"))?
+            .ok_or_else(|| anyhow!("Could not parse dividend bits")).unwrap()
             .clone();
         let divisor_sign = divisor
-            .to_bits_be()?
+            .to_bits_be().unwrap()
             .get(0)
-            .ok_or_else(|| anyhow!("Could not parse divisor bits"))?
+            .ok_or_else(|| anyhow!("Could not parse divisor bits")).unwrap()
             .clone();
 
-        let result_sign = divisor_sign.xor(&dividend_sign)?;
+        let result_sign = divisor_sign.xor(&dividend_sign).unwrap();
 
-        let one = Self::new_constant(constraint_system.clone(), 1)?;
+        let one = Self::new_constant(constraint_system.clone(), 1).unwrap();
 
         let dividend_absolute_value = Self::conditionally_select(
             &dividend_sign,
-            &helpers::to_absolute_value(self, constraint_system.clone())?,
+            &helpers::to_absolute_value(self, constraint_system.clone()).unwrap(),
             self,
-        )?;
+        ).unwrap();
         let divisor_absolute_value = Self::conditionally_select(
             &divisor_sign,
-            &helpers::to_absolute_value(divisor, constraint_system.clone())?,
+            &helpers::to_absolute_value(divisor, constraint_system.clone()).unwrap(),
             divisor,
-        )?;
+        ).unwrap();
 
-        for dividend_bit in dividend_absolute_value.to_bits_be()? {
-            quotient = quotient.shift_left(1, constraint_system.clone())?;
+        for dividend_bit in dividend_absolute_value.to_bits_be().unwrap() {
+            quotient = quotient.shift_left(1, constraint_system.clone()).unwrap();
             aux = Self::conditionally_select(
                 &dividend_bit,
-                &aux.shift_left(1, constraint_system.clone())?.or(&one)?,
-                &aux.shift_left(1, constraint_system.clone())?,
-            )?;
+                &aux.shift_left(1, constraint_system.clone()).unwrap().or(&one).unwrap(),
+                &aux.shift_left(1, constraint_system.clone()).unwrap(),
+            ).unwrap();
 
             let is_greater = divisor_absolute_value.compare(
                 &aux,
                 Comparison::GreaterThan,
                 constraint_system.clone(),
-            )?;
+            ).unwrap();
 
-            quotient = Self::conditionally_select(&is_greater, &quotient, &quotient.or(&one)?)?;
-            aux = if is_greater.value()? {
+            quotient = Self::conditionally_select(&is_greater, &quotient, &quotient.or(&one).unwrap()).unwrap();
+            aux = if is_greater.value().unwrap() {
                 aux
             } else {
-                aux.sub(&divisor_absolute_value)?
+                aux.sub(&divisor_absolute_value).unwrap()
             }
         }
 
         quotient = Self::conditionally_select(
             &result_sign,
-            &helpers::to_two_complement(&quotient, constraint_system)?,
+            &helpers::to_two_complement(&quotient, constraint_system).unwrap(),
             &quotient,
-        )?;
+        ).unwrap();
         Ok(quotient)
     }
 }
@@ -406,7 +406,7 @@ impl<F: Field> BitManipulationGadget<F> for Int8<F> {
         positions: usize,
         constraint_system: ConstraintSystemRef<F>,
     ) -> Result<Self> {
-        let primitive_bits = self.to_bits_be()?;
+        let primitive_bits = self.to_bits_be().unwrap();
         let mut rotated_bits = primitive_bits.clone();
         rotated_bits.rotate_left(positions);
 
@@ -416,7 +416,7 @@ impl<F: Field> BitManipulationGadget<F> for Int8<F> {
                 &rotated_bits.get(i),
             ) {
                 let c = lc!() + a.lc() - b.lc();
-                constraint_system.enforce_constraint(lc!(), lc!(), c)?
+                constraint_system.enforce_constraint(lc!(), lc!(), c).unwrap()
             }
         }
 
@@ -444,23 +444,23 @@ impl<F: Field> BitManipulationGadget<F> for Int8<F> {
     where
         Self: std::marker::Sized,
     {
-        let primitive_bits = self.to_bits_be()?;
+        let primitive_bits = self.to_bits_be().unwrap();
         let shifted_value = Int8::<F>::new_witness(constraint_system.clone(), || {
             let position_as_u32: u32 = positions
                 .try_into()
-                .map_err(|_e| SynthesisError::Unsatisfiable)?;
-            let (shifted_value, shift_overflowed) = self.value()?.overflowing_shl(position_as_u32);
+                .map_err(|_e| SynthesisError::Unsatisfiable).unwrap();
+            let (shifted_value, shift_overflowed) = self.value().unwrap().overflowing_shl(position_as_u32);
             if shift_overflowed {
                 Ok(0)
             } else {
                 Ok(shifted_value)
             }
-        })?;
-        let shifted_bits = shifted_value.to_bits_be()?;
+        }).unwrap();
+        let shifted_bits = shifted_value.to_bits_be().unwrap();
 
         if positions >= 8 {
             for c in shifted_bits.iter() {
-                constraint_system.enforce_constraint(lc!(), lc!(), c.lc())?;
+                constraint_system.enforce_constraint(lc!(), lc!(), c.lc()).unwrap();
             }
         } else {
             // Check that the last positions bits are 0s.
@@ -468,9 +468,9 @@ impl<F: Field> BitManipulationGadget<F> for Int8<F> {
                 .iter()
                 .skip(8 - (positions % 8))
                 .try_for_each(|c| {
-                    constraint_system.enforce_constraint(lc!(), lc!(), c.lc())?;
+                    constraint_system.enforce_constraint(lc!(), lc!(), c.lc()).unwrap();
                     Ok::<_, anyhow::Error>(())
-                })?;
+                }).unwrap();
             // Check that the first positions bits are the last positions bits of the primitive bits.
             shifted_bits
                 .iter()
@@ -478,9 +478,9 @@ impl<F: Field> BitManipulationGadget<F> for Int8<F> {
                 .zip(primitive_bits.iter().skip(positions))
                 .try_for_each(|(b, a)| {
                     let c = lc!() + a.lc() - b.lc();
-                    constraint_system.enforce_constraint(lc!(), lc!(), c)?;
+                    constraint_system.enforce_constraint(lc!(), lc!(), c).unwrap();
                     Ok::<_, anyhow::Error>(())
-                })?;
+                }).unwrap();
         }
 
         Ok(shifted_value)
@@ -494,38 +494,38 @@ impl<F: Field> BitManipulationGadget<F> for Int8<F> {
     where
         Self: std::marker::Sized,
     {
-        let primitive_bits = self.to_bits_be()?;
+        let primitive_bits = self.to_bits_be().unwrap();
         let msb = primitive_bits
             .get(0)
             .ok_or("Could not parse the bits correcly")
-            .map_err(|_e| SynthesisError::Unsatisfiable)?;
+            .map_err(|_e| SynthesisError::Unsatisfiable).unwrap();
         let shifted_value = Int8::<F>::new_witness(constraint_system.clone(), || {
             let position_as_u32: u32 = positions
                 .try_into()
-                .map_err(|_e| SynthesisError::Unsatisfiable)?;
-            let (shifted_value, shift_overflowed) = self.value()?.overflowing_shr(position_as_u32);
+                .map_err(|_e| SynthesisError::Unsatisfiable).unwrap();
+            let (shifted_value, shift_overflowed) = self.value().unwrap().overflowing_shr(position_as_u32);
             if shift_overflowed {
-                match msb.value()? {
+                match msb.value().unwrap() {
                     true => Ok(-1_i8),
                     false => Ok(0_i8),
                 }
             } else {
                 Ok(shifted_value)
             }
-        })?;
-        let shifted_bits = shifted_value.to_bits_be()?;
+        }).unwrap();
+        let shifted_bits = shifted_value.to_bits_be().unwrap();
 
         if positions >= 8 {
             // Check that the first positions primitive bits are the same as the msb.
             for c in shifted_bits.iter() {
-                constraint_system.enforce_constraint(lc!(), lc!(), c.lc() - msb.lc())?;
+                constraint_system.enforce_constraint(lc!(), lc!(), c.lc() - msb.lc()).unwrap();
             }
         } else {
             // Check that the first positions primitive bits are the same as the msb.
             shifted_bits.iter().take(positions).try_for_each(|c| {
-                constraint_system.enforce_constraint(lc!(), lc!(), c.lc() - msb.lc())?;
+                constraint_system.enforce_constraint(lc!(), lc!(), c.lc() - msb.lc()).unwrap();
                 Ok::<_, anyhow::Error>(())
-            })?;
+            }).unwrap();
             // Check that the last len - positions bits are the first positions bits of the primitive bits.
             shifted_bits
                 .iter()
@@ -533,9 +533,9 @@ impl<F: Field> BitManipulationGadget<F> for Int8<F> {
                 .zip(primitive_bits.iter().take(positions))
                 .try_for_each(|(b, a)| {
                     let c = lc!() + a.lc() - b.lc();
-                    constraint_system.enforce_constraint(lc!(), lc!(), c)?;
+                    constraint_system.enforce_constraint(lc!(), lc!(), c).unwrap();
                     Ok::<_, anyhow::Error>(())
-                })?;
+                }).unwrap();
         }
 
         Ok(shifted_value)

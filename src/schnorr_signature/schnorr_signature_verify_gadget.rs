@@ -1,13 +1,16 @@
+use crate::gadgets::poseidon2_hash;
+
 use super::{
-    blake2s::{ROGadget, RandomOracleGadget},
+    // blake2s::{ROGadget, RandomOracleGadget},
     parameters_var::ParametersVar,
     public_key_var::PublicKeyVar,
     schnorr::Schnorr,
     signature_var::SignatureVar,
-    Blake2sParametersVar, ConstraintF,
+    // Blake2sParametersVar, ConstraintF,
 };
 use ark_crypto_primitives::signature::SigVerifyGadget;
-use ark_ec::ProjectiveCurve;
+use ark_ec::CurveGroup;
+use ark_ff::{Field, MontBackend};
 use ark_r1cs_std::ToBitsGadget;
 use ark_r1cs_std::{
     prelude::{AllocVar, Boolean, CurveVar, EqGadget, GroupOpsBounds},
@@ -16,7 +19,12 @@ use ark_r1cs_std::{
 use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
 use std::marker::PhantomData;
 
-pub struct SchnorrSignatureVerifyGadget<C: ProjectiveCurve, GC: CurveVar<C, ConstraintF<C>>>
+use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
+// use ark_bn254::Fr;
+type C = JubJub;
+type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
+
+pub struct SchnorrSignatureVerifyGadget<C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>>
 where
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
 {
@@ -28,9 +36,10 @@ where
 
 impl<C, GC> SigVerifyGadget<Schnorr<C>, ConstraintF<C>> for SchnorrSignatureVerifyGadget<C, GC>
 where
-    C: ProjectiveCurve,
+    C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
+    // UInt8<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>: ark_sponge::constraints::AbsorbGadget<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>
 {
     type ParametersVar = ParametersVar<C, GC>;
     type PublicKeyVar = PublicKeyVar<C, GC>;
@@ -41,7 +50,8 @@ where
         public_key: &Self::PublicKeyVar,
         message: &[UInt8<ConstraintF<C>>],
         signature: &Self::SignatureVar,
-    ) -> Result<Boolean<ConstraintF<C>>, SynthesisError> {
+    ) -> Result<Boolean<ConstraintF<C>>, SynthesisError>
+    {
         let prover_response = signature.prover_response.clone();
         let verifier_challenge = signature.verifier_challenge.clone();
         let mut claimed_prover_commitment = parameters
@@ -60,12 +70,14 @@ where
         hash_input.extend_from_slice(&claimed_prover_commitment.to_bytes()?);
         hash_input.extend_from_slice(message);
 
-        let b2s_params = <Blake2sParametersVar as AllocVar<_, ConstraintF<C>>>::new_constant(
-            ConstraintSystemRef::None,
-            (),
-        )?;
-        let obtained_verifier_challenge = ROGadget::evaluate(&b2s_params, &hash_input)?.0;
+        // let b2s_params = <Blake2sParametersVar as AllocVar<_, ConstraintF<C>>>::new_constant(
+        //     ConstraintSystemRef::None,
+        //     (),
+        // )?;
+        // let obtained_verifier_challenge = ROGadget::evaluate(&b2s_params, &hash_input)?.0;
+        let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
+        // POSEIDON RETURNS A FIELD ELEM, EITHER FR OR CONSTRAINTF<C>
 
-        obtained_verifier_challenge.is_eq(&verifier_challenge.to_vec())
+        obtained_verifier_challenge.is_eq(&verifier_challenge)
     }
 }

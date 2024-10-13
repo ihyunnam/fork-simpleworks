@@ -42,7 +42,7 @@ where
         .zip(second_bits_to_iterate.iter())
     {
         let operation_result =
-            function_to_apply(left_operand_bit.clone(), right_operand_bit.clone())?;
+            function_to_apply(left_operand_bit.clone(), right_operand_bit.clone()).unwrap();
         result.push(operation_result);
     }
     Ok(result)
@@ -58,17 +58,17 @@ where
     T::Value: PartialOrd,
 {
     let result = match comparison {
-        Comparison::GreaterThan => left_operand.value()? > right_operand.value()?,
-        Comparison::GreaterThanOrEqual => left_operand.value()? >= right_operand.value()?,
-        Comparison::LessThanOrEqual => left_operand.value()? <= right_operand.value()?,
-        Comparison::LessThan => left_operand.value()? < right_operand.value()?,
+        Comparison::GreaterThan => left_operand.value().unwrap() > right_operand.value().unwrap(),
+        Comparison::GreaterThanOrEqual => left_operand.value().unwrap() >= right_operand.value().unwrap(),
+        Comparison::LessThanOrEqual => left_operand.value().unwrap() <= right_operand.value().unwrap(),
+        Comparison::LessThan => left_operand.value().unwrap() < right_operand.value().unwrap(),
     };
 
-    let true_witness = Boolean::<F>::new_witness(constraint_system.clone(), || Ok(true))?;
-    let false_witness = Boolean::<F>::new_witness(constraint_system.clone(), || Ok(false))?;
+    let true_witness = Boolean::<F>::new_witness(constraint_system.clone(), || Ok(true)).unwrap();
+    let false_witness = Boolean::<F>::new_witness(constraint_system.clone(), || Ok(false)).unwrap();
 
     Boolean::conditionally_select(
-        &Boolean::new_witness(constraint_system, || Ok(result))?,
+        &Boolean::new_witness(constraint_system, || Ok(result)).unwrap(),
         &true_witness,
         &false_witness,
     )
@@ -82,10 +82,10 @@ pub(crate) fn to_absolute_value<F>(
 where
     F: Field,
 {
-    let one = Int8::new_constant(constraint_system, 1)?;
-    let a = negative_number.sub(&one)?;
+    let one = Int8::new_constant(constraint_system, 1).unwrap();
+    let a = negative_number.sub(&one).unwrap();
     let a = a
-        .to_bits_le()?
+        .to_bits_le().unwrap()
         .into_iter()
         .map(|bit| bit.not())
         .collect::<Vec<Boolean<F>>>();
@@ -100,12 +100,12 @@ pub(crate) fn to_two_complement<F>(
 where
     F: Field,
 {
-    let one = Int8::new_constant(constraint_system, 1)?;
+    let one = Int8::new_constant(constraint_system, 1).unwrap();
     let a = positive_number
-        .to_bits_le()?
+        .to_bits_le().unwrap()
         .into_iter()
         .map(|bit| bit.not())
         .collect::<Vec<Boolean<F>>>();
-    let a = Int8::from_bits_le(&a)?;
+    let a = Int8::from_bits_le(&a).unwrap();
     a.add(&one)
 }

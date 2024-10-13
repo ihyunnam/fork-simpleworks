@@ -24,7 +24,7 @@ impl<F: Field> ToFieldElements<F> for UInt64<F> {
         let bits_le = self.to_bits_le();
         let mut result = Vec::with_capacity(64);
         for boolean_gadget_value in bits_le.iter() {
-            if boolean_gadget_value.value()? {
+            if boolean_gadget_value.value().unwrap() {
                 result.push(F::one())
             } else {
                 result.push(F::zero())
@@ -44,10 +44,10 @@ impl<F: Field> FromBytesGadget<F> for UInt64<F> {
     {
         let mut bytes_as_booleans: Vec<Vec<Boolean<F>>> = Vec::new();
         bytes.iter().try_for_each(|elem| {
-            let bits = elem.to_bits_le()?;
+            let bits = elem.to_bits_le().unwrap();
             bytes_as_booleans.push(bits);
             Ok::<_, anyhow::Error>(())
-        })?;
+        }).unwrap();
 
         let bits: Vec<Boolean<F>> = bytes_as_booleans.into_iter().flatten().collect();
 
@@ -73,7 +73,7 @@ impl<F: Field> BitwiseOperationGadget<F> for UInt64<F> {
             self.to_bits_le(),
             other_gadget.to_bits_le(),
             |first_bit, second_bit| first_bit.and(&second_bit),
-        )?;
+        ).unwrap();
         let new_value = UInt64::from_bits_le(&result);
         Ok(new_value)
     }
@@ -85,8 +85,8 @@ impl<F: Field> BitwiseOperationGadget<F> for UInt64<F> {
         let result = helpers::zip_bits_and_apply(
             self.to_bits_le(),
             other_gadget.to_bits_le(),
-            |first_bit, second_bit| Ok(first_bit.and(&second_bit)?.not()),
-        )?;
+            |first_bit, second_bit| Ok(first_bit.and(&second_bit).unwrap().not()),
+        ).unwrap();
         let new_value = UInt64::from_bits_le(&result);
         Ok(new_value)
     }
@@ -98,8 +98,8 @@ impl<F: Field> BitwiseOperationGadget<F> for UInt64<F> {
         let result = helpers::zip_bits_and_apply(
             self.to_bits_le(),
             other_gadget.to_bits_le(),
-            |first_bit, second_bit| Ok(first_bit.or(&second_bit)?.not()),
-        )?;
+            |first_bit, second_bit| Ok(first_bit.or(&second_bit).unwrap().not()),
+        ).unwrap();
         let new_value = UInt64::from_bits_le(&result);
         Ok(new_value)
     }
@@ -112,7 +112,7 @@ impl<F: Field> BitwiseOperationGadget<F> for UInt64<F> {
             self.to_bits_le(),
             other_gadget.to_bits_le(),
             |first_bit, second_bit| first_bit.or(&second_bit),
-        )?;
+        ).unwrap();
         let new_value = UInt64::from_bits_le(&result);
         Ok(new_value)
     }
@@ -125,7 +125,7 @@ impl<F: Field> BitwiseOperationGadget<F> for UInt64<F> {
             self.to_bits_le(),
             other_gadget.to_bits_le(),
             |first_bit, second_bit| first_bit.xor(&second_bit),
-        )?;
+        ).unwrap();
         let new_value = UInt64::from_bits_le(&result);
         Ok(new_value)
     }
@@ -148,7 +148,7 @@ impl<F: Field> BitManipulationGadget<F> for UInt64<F> {
                 &rotated_bits.get(i),
             ) {
                 let c = lc!() + a.lc() - b.lc();
-                constraint_system.enforce_constraint(lc!(), lc!(), c)?
+                constraint_system.enforce_constraint(lc!(), lc!(), c).unwrap()
             }
         }
 
@@ -181,20 +181,20 @@ impl<F: Field> BitManipulationGadget<F> for UInt64<F> {
         let shifted_value = UInt64::<F>::new_witness(constraint_system.clone(), || {
             let position_as_u32: u32 = positions
                 .try_into()
-                .map_err(|_e| SynthesisError::Unsatisfiable)?;
-            let (shifted_value, shift_overflowed) = self.value()?.overflowing_shl(position_as_u32);
+                .map_err(|_e| SynthesisError::Unsatisfiable).unwrap();
+            let (shifted_value, shift_overflowed) = self.value().unwrap().overflowing_shl(position_as_u32);
             if shift_overflowed {
                 Ok(0)
             } else {
                 Ok(shifted_value)
             }
-        })?;
+        }).unwrap();
         let mut shifted_bits = shifted_value.to_bits_le();
         shifted_bits.reverse();
 
         if positions >= 64 {
             for c in shifted_bits.iter() {
-                constraint_system.enforce_constraint(lc!(), lc!(), c.lc())?;
+                constraint_system.enforce_constraint(lc!(), lc!(), c.lc()).unwrap();
             }
         } else {
             // Check that the last positions bits are 0s.
@@ -202,9 +202,9 @@ impl<F: Field> BitManipulationGadget<F> for UInt64<F> {
                 .iter()
                 .skip(64 - (positions % 64))
                 .try_for_each(|c| {
-                    constraint_system.enforce_constraint(lc!(), lc!(), c.lc())?;
+                    constraint_system.enforce_constraint(lc!(), lc!(), c.lc()).unwrap();
                     Ok::<_, anyhow::Error>(())
-                })?;
+                }).unwrap();
             // Check that the first positions bits are the last positions bits of the primitive bits.
             shifted_bits
                 .iter()
@@ -212,9 +212,9 @@ impl<F: Field> BitManipulationGadget<F> for UInt64<F> {
                 .zip(primitive_bits.iter().skip(positions))
                 .try_for_each(|(b, a)| {
                     let c = lc!() + a.lc() - b.lc();
-                    constraint_system.enforce_constraint(lc!(), lc!(), c)?;
+                    constraint_system.enforce_constraint(lc!(), lc!(), c).unwrap();
                     Ok::<_, anyhow::Error>(())
-                })?;
+                }).unwrap();
         }
 
         Ok(shifted_value)
@@ -233,27 +233,27 @@ impl<F: Field> BitManipulationGadget<F> for UInt64<F> {
         let shifted_value = UInt64::<F>::new_witness(constraint_system.clone(), || {
             let position_as_u32: u32 = positions
                 .try_into()
-                .map_err(|_e| SynthesisError::Unsatisfiable)?;
-            let (shifted_value, shift_overflowed) = self.value()?.overflowing_shr(position_as_u32);
+                .map_err(|_e| SynthesisError::Unsatisfiable).unwrap();
+            let (shifted_value, shift_overflowed) = self.value().unwrap().overflowing_shr(position_as_u32);
             if shift_overflowed {
                 Ok(0)
             } else {
                 Ok(shifted_value)
             }
-        })?;
+        }).unwrap();
         let mut shifted_bits = shifted_value.to_bits_le();
         shifted_bits.reverse();
 
         if positions >= 64 {
             for c in shifted_bits.iter() {
-                constraint_system.enforce_constraint(lc!(), lc!(), c.lc())?;
+                constraint_system.enforce_constraint(lc!(), lc!(), c.lc()).unwrap();
             }
         } else {
             // Check that the first positions primitive bits are 0s.
             shifted_bits.iter().take(positions).try_for_each(|c| {
-                constraint_system.enforce_constraint(lc!(), lc!(), c.lc())?;
+                constraint_system.enforce_constraint(lc!(), lc!(), c.lc()).unwrap();
                 Ok::<_, anyhow::Error>(())
-            })?;
+            }).unwrap();
             // Check that the last len - positions bits are the first positions bits of the primitive bits.
             shifted_bits
                 .iter()
@@ -261,9 +261,9 @@ impl<F: Field> BitManipulationGadget<F> for UInt64<F> {
                 .zip(primitive_bits.iter().take(positions))
                 .try_for_each(|(b, a)| {
                     let c = lc!() + a.lc() - b.lc();
-                    constraint_system.enforce_constraint(lc!(), lc!(), c)?;
+                    constraint_system.enforce_constraint(lc!(), lc!(), c).unwrap();
                     Ok::<_, anyhow::Error>(())
-                })?;
+                }).unwrap();
         }
 
         Ok(shifted_value)
@@ -275,7 +275,7 @@ impl<F: Field + PrimeField> ArithmeticGadget<F> for UInt64<F> {
     where
         Self: std::marker::Sized,
     {
-        let result = Self::addmany(&[self.clone(), addend.clone()])?;
+        let result = Self::addmany(&[self.clone(), addend.clone()]).unwrap();
         Ok(result)
     }
 
@@ -284,7 +284,7 @@ impl<F: Field + PrimeField> ArithmeticGadget<F> for UInt64<F> {
         Self: std::marker::Sized,
     {
         ensure!(
-            self.value()? >= subtrahend.value()?,
+            self.value().unwrap() >= subtrahend.value().unwrap(),
             "Subtraction underflow"
         );
 
@@ -299,7 +299,7 @@ impl<F: Field + PrimeField> ArithmeticGadget<F> for UInt64<F> {
 
         let subtrahend_as_addend_var = Self::from_bits_le(&subtrahend_as_addend);
 
-        let partial_result = Self::addmany(&[minuend_as_augend, subtrahend_as_addend_var])?;
+        let partial_result = Self::addmany(&[minuend_as_augend, subtrahend_as_addend_var]).unwrap();
 
         let difference = Self::from_bits_le(
             &partial_result
@@ -316,28 +316,28 @@ impl<F: Field + PrimeField> ArithmeticGadget<F> for UInt64<F> {
     where
         Self: std::marker::Sized,
     {
-        ensure!(divisor.value()? != 0_u64, "attempt to divide by zero");
+        ensure!(divisor.value().unwrap() != 0_u64, "attempt to divide by zero");
         let mut quotient = self.clone();
-        let mut aux = Self::new_witness(constraint_system.clone(), || Ok(0))?;
+        let mut aux = Self::new_witness(constraint_system.clone(), || Ok(0)).unwrap();
 
-        let one = Self::new_constant(constraint_system.clone(), 1)?;
+        let one = Self::new_constant(constraint_system.clone(), 1).unwrap();
 
         for dividend_bit in self.to_bits_le().iter().rev() {
-            quotient = quotient.shift_left(1, constraint_system.clone())?;
+            quotient = quotient.shift_left(1, constraint_system.clone()).unwrap();
             aux = Self::conditionally_select(
                 dividend_bit,
-                &aux.shift_left(1, constraint_system.clone())?.or(&one)?,
-                &aux.shift_left(1, constraint_system.clone())?,
-            )?;
+                &aux.shift_left(1, constraint_system.clone()).unwrap().or(&one).unwrap(),
+                &aux.shift_left(1, constraint_system.clone()).unwrap(),
+            ).unwrap();
 
             let is_greater =
-                divisor.compare(&aux, Comparison::GreaterThan, constraint_system.clone())?;
+                divisor.compare(&aux, Comparison::GreaterThan, constraint_system.clone()).unwrap();
 
-            quotient = Self::conditionally_select(&is_greater, &quotient, &quotient.or(&one)?)?;
-            aux = if is_greater.value()? {
+            quotient = Self::conditionally_select(&is_greater, &quotient, &quotient.or(&one).unwrap()).unwrap();
+            aux = if is_greater.value().unwrap() {
                 aux
             } else {
-                aux.sub(divisor)?
+                aux.sub(divisor).unwrap()
             }
         }
         Ok(quotient)
@@ -347,15 +347,15 @@ impl<F: Field + PrimeField> ArithmeticGadget<F> for UInt64<F> {
     where
         Self: std::marker::Sized,
     {
-        let mut product = Self::new_witness(constraint_system.clone(), || Ok(0))?;
+        let mut product = Self::new_witness(constraint_system.clone(), || Ok(0)).unwrap();
         for (i, multiplier_bit) in self.to_bits_le().iter().enumerate() {
             // If the multiplier bit is a 1.
-            let addend = multiplicand.shift_left(i, constraint_system.clone())?;
+            let addend = multiplicand.shift_left(i, constraint_system.clone()).unwrap();
             product = Self::conditionally_select(
                 multiplier_bit,
-                &Self::addmany(&[product.clone(), addend])?,
+                &Self::addmany(&[product.clone(), addend]).unwrap(),
                 &product,
-            )?;
+            ).unwrap();
         }
         Ok(product)
     }

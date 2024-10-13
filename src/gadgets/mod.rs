@@ -1,3 +1,5 @@
+use ark_ec::CurveGroup;
+use ark_ff::Field;
 use ark_r1cs_std::{
     fields::fp::FpVar, uint128::UInt128, uint16::UInt16, uint32::UInt32, uint64::UInt64,
     uint8::UInt8,
@@ -26,7 +28,9 @@ mod uint8;
 
 pub mod traits;
 
-pub type ConstraintF = ark_ed_on_bls12_377::Fq;
+use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsConfig, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
+pub type C = JubJub;
+pub type ConstraintF = <<ark_ec::twisted_edwards::Projective<EdwardsConfig> as CurveGroup>::BaseField as Field>::BasePrimeField;
 pub type Comparison = helpers::Comparison;
 
 pub type UInt8Gadget = UInt8<ConstraintF>;
