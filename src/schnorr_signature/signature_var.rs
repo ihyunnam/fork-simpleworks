@@ -36,7 +36,7 @@ where
     C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
-    <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
+    // <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
     // Namespace<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>: From<Namespace<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>>,
 {
     fn new_variable<T: Borrow<Signature<C>>>(
