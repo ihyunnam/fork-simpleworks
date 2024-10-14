@@ -72,7 +72,7 @@ where
         hash_input.extend_from_slice(&public_key.pub_key.to_bytes()?);
         hash_input.extend_from_slice(&claimed_prover_commitment.to_bytes()?);
         hash_input.extend_from_slice(message);
-        println!("hash length {:?}", hash_input.len());
+        println!("hash length {:?}", hash_input.len());     // 129 - divisible by 8!!
         // let b2s_params = <Blake2sParametersVar as AllocVar<_, ConstraintF<C>>>::new_constant(
         //     ConstraintSystemRef::None,
         //     (),
@@ -96,8 +96,8 @@ where
         // Convert the bits back into an FpVar
         // let verifier_challenge_fe = FpVar::<ConstraintF<C>>::from(&bits);
         // let verifier_challenge_fe = verifier_challenge.to_bigint().to_bytes_le()?;
-        // let bits = obtained_verifier_challenge.to_bytes()?;
-        let mut bytes = Vec::new();
+        let bytes = obtained_verifier_challenge.to_bytes()?;
+        // let mut bytes = Vec::new();
         // for chunk in bits.chunks(8) {
         //     // Convert each 8-bit chunk to a UInt8<ConstraintF<C>>
         //     let byte = UInt8::<ConstraintF<C>>::from_bits_le(chunk);
