@@ -954,26 +954,23 @@ fn main() {
 
         let new_circuit = generate_insert_circuit();
 
-        // if let Some((key, _)) = ConstraintF::<C>::from_random_bytes_with_flags::<EmptyFlags>(&aggregated_pubkey) {
-            // let public_inputs = &key;
-        
-            let start = Instant::now();
-            let proof = Groth16::<E>::prove(
-                &pk,
-                new_circuit,
-                rng
-            ).unwrap();
-            proof_time_total += start.elapsed();
+        let start = Instant::now();
+        let proof = Groth16::<E>::prove(
+            &pk,
+            new_circuit,
+            rng
+        ).unwrap();
+        proof_time_total += start.elapsed();
 
-            let start = Instant::now();
-            let verified = Groth16::<E>::verify_with_processed_vk(
-                &pvk,
-                &[],        // NOTE: No public inputs for new users (because they weren't supplied for prove phase)
-                &proof,
-            );
-            verify_time_total += start.elapsed();
-            println!("{:?}", verified);}
-        // }
+        let start = Instant::now();
+        let verified = Groth16::<E>::verify_with_processed_vk(
+            &pvk,
+            &[],        // NOTE: No public inputs for new users (because they weren't supplied for prove phase)
+            &proof,
+        );
+        verify_time_total += start.elapsed();
+        println!("{:?}", verified);
+        }
     println!("InsertCircuit Logistics time: {:?}", logistics_total/10);
     println!("InsertCircuit Setup time total: {:?}", setup_total/10);
     println!("InsertCircuit Prove time: {:?}", proof_time_total.as_millis()/10);

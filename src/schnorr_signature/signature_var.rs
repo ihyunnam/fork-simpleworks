@@ -47,9 +47,7 @@ where
         f().and_then(|val| {
             let cs = cs.into();
             let response_bytes = val.borrow().prover_response.into_bigint().to_bytes_le();
-            // let challenge_bytes = val.borrow().verifier_challenge.into_bigint().to_bytes_le();
             let challenge_bytes = &val.borrow().verifier_challenge;
-            println!("VERIFIER CHALLENGE THERE {:?}", &challenge_bytes);
             let mut prover_response = Vec::<UInt8<ConstraintF<C>>>::new();
             let mut verifier_challenge = Vec::<UInt8<ConstraintF<C>>>::new();
             for byte in &response_bytes {

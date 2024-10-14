@@ -59,11 +59,7 @@ where
     {
         let prover_response = signature.prover_response.clone();
         let verifier_challenge = signature.verifier_challenge.clone();
-        // let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
-        // match verifier_challenge.value() {
-        //     Ok(value) => println!("obtained verifier challenge value: {:?}", value.into_bigint()),
-        //     Err(_) => println!("Error: value is not available"),
-        // }
+
         let mut claimed_prover_commitment = parameters
             .generator
             .scalar_mul_le(prover_response.to_bits_le()?.iter())?;
@@ -76,47 +72,14 @@ where
         let mut hash_input = Vec::new();
         if let Some(salt) = parameters.salt.as_ref() {
             hash_input.extend_from_slice(salt);
-            // println!("salt value {:?}", salt.value()); - NO SALT
         }
         
         hash_input.extend_from_slice(&public_key.pub_key.to_bytes()?);
         hash_input.extend_from_slice(&claimed_prover_commitment.to_bytes()?);
         hash_input.extend_from_slice(message);
-        println!("hash length {:?}", hash_input.len());     // 129 - divisible by 8!!
-        // let b2s_params = <Blake2sParametersVar as AllocVar<_, ConstraintF<C>>>::new_constant(
-        //     ConstraintSystemRef::None,
-        //     (),
-        // )?;
-        // let obtained_verifier_challenge = ROGadget::evaluate(&b2s_params, &hash_input)?.0;
-        println!("hash input in gadget value {:?}", hash_input.value());
         let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
-        // println!("obtained verifier challenge value {:?}", obtained_verifier_challenge.value().unwrap_or(FpVar::<ark_ff::Fp::<MontBackend<ark_bn254::FrConfig, 4>, 4>>::new(0)).into_bigint());
-        println!("obtained verifier challenge value {:?}", obtained_verifier_challenge.value());
-        // POSEIDON RETURNS FPVAR, EITHER FR OR CONSTRAINTF<C>
         
-        // let mut bits: Vec<ark_r1cs_std::prelude::Boolean<ConstraintF<C>>> = Vec::new();
-        // for byte in verifier_challenge {
-        //     let byte_bits = byte.to_bits_le()?;
-        //     bits.extend(byte_bits);
-        // }
-
-        // let verifier_challenge_fe = FpVar::<ConstraintF<C>>::new_variable(
-        //     cs.clone(),
-        //     || Ok(ConstraintF::<C>::from_le_bits(&bits)),
-        //     AllocationMode::Witness,
-        // ).unwrap();
-
-        // Convert the bits back into an FpVar
-        // let verifier_challenge_fe = FpVar::<ConstraintF<C>>::from(&bits);
-        // let verifier_challenge_fe = verifier_challenge.to_bigint().to_bytes_le()?;
         let bytes: Vec<UInt8<ConstraintF<C>>> = obtained_verifier_challenge.to_bytes()?;
-        println!("bytes value {:?}", bytes.value());
-        // let mut bytes = Vec::new();
-        // for chunk in bits.chunks(8) {
-        //     // Convert each 8-bit chunk to a UInt8<ConstraintF<C>>
-        //     let byte = UInt8::<ConstraintF<C>>::from_bits_le(chunk);
-        //     bytes.push(byte);
-        // }
 
         bytes.is_eq(&verifier_challenge)
     }

@@ -148,11 +148,7 @@ where
             hash_input.extend_from_slice(&writer);
             hash_input.extend_from_slice(message);
 
-            println!("hash input in the clear {:?}", hash_input);
             let verifier_challenge_fe = poseidon2_hash(&hash_input).unwrap();   // make this constraintF<C> by making poseidon return such
-            // assert!(hash_digest.len() >= 32);
-            // let mut verifier_challenge = [0_u8; 32];
-            // verifier_challenge.copy_from_slice(&hash_digest);
 
             (random_scalar, verifier_challenge_fe)
         };
@@ -161,7 +157,7 @@ where
         let verifier_challenge = C::ScalarField::from_le_bytes_mod_order(&verifier_challenge_fe.into_bigint().to_bytes_le());
 
         let verifier_challenge_bytes = verifier_challenge_fe.into_bigint().to_bytes_le();
-        println!("VERIFIER CHALLENGE HERE {:?}", verifier_challenge_bytes);
+
         // k - xe;
         let prover_response = random_scalar - (verifier_challenge.mul(sk.secret_key));
         let signature = Signature {
