@@ -1,20 +1,22 @@
+use ark_crypto_primitives::sponge::poseidon::find_poseidon_ark_and_mds;
 // use ark_snark::SNARK;
 use rand::rngs::OsRng;
 mod schnorr_signature;
 mod fields;
 mod gadgets;
 mod hash;
+use ark_bn254::fq::FqConfig;
 // mod marlin;
 // mod merkle_tree;
 use ark_crypto_primitives::signature::SigVerifyGadget;
 use ark_ec::Group;
 // use ark_crypto_primitives::signature::{schnorr::Schnorr, constraints::SigVerifyGadget};
-use ark_ff::{BigInteger, BigInteger256};
+use ark_ff::{BigInteger, BigInteger256, FpConfig};
 use ark_crypto_primitives::snark::SNARK;
 use ark_ec::pairing::Pairing;
 // use ark_ec::twisted_edwards::GroupProjective;
 use ark_r1cs_std::fields::fp::FpVar;
-use ark_sponge::poseidon::find_poseidon_ark_and_mds;
+use ark_sponge::poseidon::{PoseidonDefaultConfigField, PoseidonDefaultConfig};
 use bitvec::view::AsBits;
 // use digest::Digest;
 // use sha2::digest::DynDigest as H;
@@ -28,7 +30,7 @@ use ark_crypto_primitives::crh::poseidon::constraints::{CRHGadget, CRHParameters
 use ark_crypto_primitives::crh::poseidon::{TwoToOneCRH};
 use ark_crypto_primitives::crh::{CRHScheme, CRHSchemeGadget};
 use ark_crypto_primitives::crh::{TwoToOneCRHScheme, TwoToOneCRHSchemeGadget};
-use ark_crypto_primitives::sponge::poseidon::PoseidonConfig;
+use ark_crypto_primitives::sponge::{poseidon::{get_default_poseidon_parameters_internal, PoseidonConfig}};
 use ark_relations::r1cs::{ConstraintMatrices, ConstraintSystem, Namespace, SynthesisMode};
 use ark_std::{Zero, borrow::Borrow};
 use ark_ec::{twisted_edwards::Affine, AffineRepr, CurveGroup};
@@ -38,10 +40,10 @@ use ark_ff::{
     fields::{Field},
     UniformRand,
 };
-// use ark_bn254::{Fr, Bn254 as E};
-use ark_bn254::{Bn254 as E};
+use ark_bn254::{Fr, Fq, Bn254 as E};
+// use ark_bn254::{Bn254 as E};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, EmptyFlags, Validate};
-use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub, Fr};   // Fq2: finite field, JubJub: curve group
+use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 
 // mod schnorr;
 // use schnorr::constraints::*;
@@ -79,8 +81,6 @@ use ark_relations::r1cs::{SynthesisError, ConstraintSynthesizer, ConstraintSyste
 use ark_std::marker::PhantomData;
 use ark_groth16::Groth16;
 
-// type E = <EdwardsConfig as Pairing>;
-// type Fr = Fp<MontBackend<FrConfig, 4>, 4>;
 type C = JubJub;
 type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
 // type P = MiMCParameters;
@@ -154,9 +154,20 @@ pub struct InsertCircuit<W, C: CurveGroup, GG: CurveVar<C, ConstraintF<C>>> {
 fn generate_insert_circuit() -> InsertCircuit<W,C,GG> {
     println!("Generating InsertCircuit");
     let rng = &mut OsRng;
-        
-    let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF<C>> (254, 2, 8, 24, 0);        // ark_bn254::FrParameters::MODULUS_BITS = 255
-    let poseidon_params = PoseidonConfig::<ConstraintF<C>>::new(8, 24, 31, mds, ark, 2, 1);
+    
+    // let poseidon_params = Fq::get_default_poseidon_parameters(4, false).unwrap();
+    // let poseidon_params = get_default_poseidon_parameters_internal::<Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>, 4>(4, false);
+
+    let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF<C>> (254, 4, 8, 56, 0);        // ark_bn254::FrParameters::MODULUS_BITS = 255
+    let poseidon_params = PoseidonConfig::<ConstraintF<C>>::new(8, 56, 5, mds, ark, 4, 1);
+
+    // full_rounds: usize,
+    //     partial_rounds: usize,
+    //     alpha: u64,
+    //     mds: Vec<Vec<F>>,
+    //     ark: Vec<Vec<F>>,
+    //     rate: usize,
+    //     capacity: usize,
 
     println!("here1");
     /* Generate user MiMC key */
@@ -937,7 +948,7 @@ fn main() {
     let mut setup_total: Duration = Duration::default();
     let mut proof_time_total = Duration::default();
     let mut verify_time_total = Duration::default();
-    for i in 0..10 {
+    for i in 0..5 {
         println!("InsertCircuit iteration {:?}", i);
         let rng = &mut OsRng;
         let new_circuit = generate_insert_circuit();
