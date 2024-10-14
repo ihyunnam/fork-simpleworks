@@ -42,7 +42,7 @@ where
     C: CurveGroup<BaseField = ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
-    C::BaseField: Field<BasePrimeField = ark_ed_on_bn254::Fq>,
+    // C::BaseField: Field<BasePrimeField = ark_ed_on_bn254::Fq>,
 {
     type ParametersVar = ParametersVar<C, GC>;
     type PublicKeyVar = PublicKeyVar<C, GC>;
