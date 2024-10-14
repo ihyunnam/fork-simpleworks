@@ -18,8 +18,8 @@ pub use public_key_var::PublicKeyVar;
 pub mod schnorr_signature_verify_gadget;
 pub use schnorr_signature_verify_gadget::SchnorrSignatureVerifyGadget;
 
-// pub mod blake2s;
-// pub use blake2s::ParametersVar as Blake2sParametersVar;
+pub mod blake2s;
+pub use blake2s::ParametersVar as Blake2sParametersVar;
 
 // pub mod self::hash;
 // pub use 

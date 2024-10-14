@@ -81,7 +81,7 @@ impl<C: CurveGroup> CanonicalSerialize for SecretKey<C> {
 #[derive(Clone, Default, Debug)]
 pub struct Signature<C: CurveGroup> {
     pub prover_response: C::ScalarField,
-    pub verifier_challenge: Vec<u8>,
+    pub verifier_challenge: [u8;32],
 }
 
 impl<C: CurveGroup + Hash> SignatureScheme for Schnorr<C>
@@ -126,43 +126,43 @@ where
         rng: &mut R,
     ) -> Result<Self::Signature, Error> {
         // (k, e);
-        let (random_scalar, verifier_challenge_fe) = {
+        let (random_scalar, verifier_challenge) = {
             // Sample a random scalar `k` from the prime scalar field.
-            let random_scalar: C::ScalarField = C::ScalarField::rand(rng);      // SCALARFIELD IS Fr
+            let random_scalar: C::ScalarField = C::ScalarField::rand(rng);
             // Commit to the random scalar via r := k · G.
             // This is the prover's first msg in the Sigma protocol.
             let prover_commitment = parameters.generator.mul(random_scalar).into_affine();
-            println!("actual prover commitment {:?}", prover_commitment);
+
             // Hash everything to get verifier challenge.
             // e := H(salt || pubkey || r || msg);
             let mut hash_input = Vec::new();
             if let Some(salt) = parameters.salt {
                 hash_input.extend_from_slice(&salt);
-                // println!("salt actual {:?}", salt); - NO SALT
             }
             let mut writer = vec![];
-            sk.public_key.serialize_uncompressed(&mut writer).unwrap();
+            sk.public_key.serialize_uncompressed(&mut writer);
             hash_input.extend_from_slice(&writer);
             writer.clear();
-            prover_commitment.serialize_uncompressed(&mut writer).unwrap();
+            prover_commitment.serialize_uncompressed(&mut writer);
             hash_input.extend_from_slice(&writer);
             hash_input.extend_from_slice(message);
 
-            let verifier_challenge_fe = poseidon2_hash(&hash_input).unwrap();   // make this constraintF<C> by making poseidon return such
+            let hash_digest = Blake2s::digest(&hash_input);
+            assert!(hash_digest.len() >= 32);
+            let mut verifier_challenge: [u8; 32] = [0_u8; 32];
+            verifier_challenge.copy_from_slice(&hash_digest.as_slice()[..32]);
 
-            (random_scalar, verifier_challenge_fe)
+
+            (random_scalar, verifier_challenge)
         };
 
-        // println!("VERIFIER CHALLENGE HERE {:?}", &verifier_challenge_fe.into_bigint().to_bytes_le());
-        let verifier_challenge = C::ScalarField::from_le_bytes_mod_order(&verifier_challenge_fe.into_bigint().to_bytes_le());
-
-        let verifier_challenge_bytes = verifier_challenge_fe.into_bigint().to_bytes_le();
+        let verifier_challenge_fe = C::ScalarField::from_le_bytes_mod_order(&verifier_challenge);
 
         // k - xe;
-        let prover_response = random_scalar - (verifier_challenge.mul(sk.secret_key));
+        let prover_response = random_scalar - (verifier_challenge_fe * sk.secret_key);
         let signature = Signature {
             prover_response,
-            verifier_challenge: verifier_challenge_bytes,     // TODO: CONSTRAINTF<C> INTO BYTES --> var as vec<uint<constraintf<C>>>
+            verifier_challenge,
         };
 
         Ok(signature)

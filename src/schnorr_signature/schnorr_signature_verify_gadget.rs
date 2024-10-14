@@ -3,12 +3,12 @@ use ark_r1cs_std::R1CSVar;
 use crate::gadgets::poseidon2_hash;
 
 use super::{
-    // blake2s::{ROGadget, RandomOracleGadget},
+    blake2s::{ROGadget, RandomOracleGadget},
     parameters_var::ParametersVar,
     public_key_var::PublicKeyVar,
     schnorr::Schnorr,
     signature_var::SignatureVar,
-    // Blake2sParametersVar, ConstraintF,
+    Blake2sParametersVar,
 };
 use ark_crypto_primitives::signature::SigVerifyGadget;
 use ark_ec::{CurveGroup, Group};
@@ -59,11 +59,9 @@ where
     {
         let prover_response = signature.prover_response.clone();
         let verifier_challenge = signature.verifier_challenge.clone();
-
         let mut claimed_prover_commitment = parameters
             .generator
             .scalar_mul_le(prover_response.to_bits_le()?.iter())?;
-        println!("claimed prover commitment {:?}", claimed_prover_commitment.value());
         let public_key_times_verifier_challenge = public_key
             .pub_key
             .scalar_mul_le(verifier_challenge.to_bits_le()?.iter())?;
@@ -73,14 +71,16 @@ where
         if let Some(salt) = parameters.salt.as_ref() {
             hash_input.extend_from_slice(salt);
         }
-        
         hash_input.extend_from_slice(&public_key.pub_key.to_bytes()?);
         hash_input.extend_from_slice(&claimed_prover_commitment.to_bytes()?);
         hash_input.extend_from_slice(message);
-        let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
-        
-        let bytes: Vec<UInt8<ConstraintF<C>>> = obtained_verifier_challenge.to_bytes()?;
 
-        bytes.is_eq(&verifier_challenge)
+        let b2s_params = <Blake2sParametersVar as AllocVar<_, ConstraintF<C>>>::new_constant(
+            ConstraintSystemRef::None,
+            (),
+        )?;
+        let obtained_verifier_challenge = ROGadget::evaluate(&b2s_params, &hash_input)?.0;
+
+        obtained_verifier_challenge.is_eq(&verifier_challenge.to_vec())
     }
 }
