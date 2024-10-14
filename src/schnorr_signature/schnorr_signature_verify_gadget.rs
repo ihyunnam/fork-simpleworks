@@ -96,7 +96,7 @@ where
         // Convert the bits back into an FpVar
         // let verifier_challenge_fe = FpVar::<ConstraintF<C>>::from(&bits);
         // let verifier_challenge_fe = verifier_challenge.to_bigint().to_bytes_le()?;
-        let bytes = obtained_verifier_challenge.to_bytes()?;
+        let bytes: Vec<UInt8<ConstraintF<C>>> = obtained_verifier_challenge.to_bytes()?;
         // let mut bytes = Vec::new();
         // for chunk in bits.chunks(8) {
         //     // Convert each 8-bit chunk to a UInt8<ConstraintF<C>>
