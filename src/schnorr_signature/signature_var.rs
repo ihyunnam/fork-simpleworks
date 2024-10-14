@@ -25,8 +25,8 @@ pub struct SignatureVar<C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>>
 where
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
 {
-    pub(crate) prover_response: Vec<UInt8<ConstraintF<C>>>,
-    pub(crate) verifier_challenge: Vec<UInt8<ConstraintF<C>>>,
+    pub prover_response: Vec<UInt8<ConstraintF<C>>>,
+    pub verifier_challenge: Vec<UInt8<ConstraintF<C>>>,      // TODO: ADD (crate) back in for both
     #[doc(hidden)]
     _group: PhantomData<GC>,
 }
@@ -47,7 +47,9 @@ where
         f().and_then(|val| {
             let cs = cs.into();
             let response_bytes = val.borrow().prover_response.into_bigint().to_bytes_le();
-            let challenge_bytes = val.borrow().verifier_challenge.into_bigint().to_bytes_le();
+            // let challenge_bytes = val.borrow().verifier_challenge.into_bigint().to_bytes_le();
+            let challenge_bytes = &val.borrow().verifier_challenge;
+            println!("VERIFIER CHALLENGE THERE {:?}", &challenge_bytes);
             let mut prover_response = Vec::<UInt8<ConstraintF<C>>>::new();
             let mut verifier_challenge = Vec::<UInt8<ConstraintF<C>>>::new();
             for byte in &response_bytes {
@@ -57,7 +59,7 @@ where
                     mode,
                 )?);
             }
-            for byte in &challenge_bytes {
+            for byte in challenge_bytes {
                 verifier_challenge.push(UInt8::<ConstraintF<C>>::new_variable(
                     cs.clone(),
                     || Ok(byte),
