@@ -42,9 +42,9 @@ where
     C: CurveGroup,
     GC: CurveVar<C, ConstraintF<C>>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
-    Namespace<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>: From<Namespace<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>>,
-    <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
-    UInt8<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>: ark_sponge::constraints::AbsorbGadget<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
+    // Namespace<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>: From<Namespace<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>>,
+    // <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
+    // UInt8<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>: ark_sponge::constraints::AbsorbGadget<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
     C::BaseField: Field<BasePrimeField = ark_ed_on_bn254::Fq>,
 {
     type ParametersVar = ParametersVar<C, GC>;
