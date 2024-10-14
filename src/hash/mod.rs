@@ -40,7 +40,7 @@ type PoseidonHash = PoseidonSponge<ConstraintF<C>>;
 
 lazy_static! {
     pub static ref POSEIDON_PARAMS: PoseidonConfig<ConstraintF<C>> = {
-        let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF<C>>(255, 2, 8, 24, 0);
+        let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF<C>>(254, 2, 8, 24, 0);
         PoseidonConfig::<ConstraintF<C>>::new(8, 24, 31, mds, ark, 2, 1)
     };
 }
