@@ -13,7 +13,7 @@ use ark_ec::{CurveGroup, Group};
 use ark_ff::{Field, MontBackend};
 use ark_r1cs_std::alloc::AllocationMode;
 use ark_r1cs_std::fields::fp::FpVar;
-use ark_r1cs_std::ToBitsGadget;
+use ark_r1cs_std::{ToBitsGadget, ToBytesGadget};
 use ark_r1cs_std::{
     prelude::{AllocVar, Boolean, CurveVar, EqGadget, GroupOpsBounds},
     uint8::UInt8,
@@ -72,7 +72,7 @@ where
         hash_input.extend_from_slice(&public_key.pub_key.to_bytes()?);
         hash_input.extend_from_slice(&claimed_prover_commitment.to_bytes()?);
         hash_input.extend_from_slice(message);
-
+        println!("hash length {:?}", hash_input.len());
         // let b2s_params = <Blake2sParametersVar as AllocVar<_, ConstraintF<C>>>::new_constant(
         //     ConstraintSystemRef::None,
         //     (),
@@ -96,13 +96,13 @@ where
         // Convert the bits back into an FpVar
         // let verifier_challenge_fe = FpVar::<ConstraintF<C>>::from(&bits);
         // let verifier_challenge_fe = verifier_challenge.to_bigint().to_bytes_le()?;
-        let bits = obtained_verifier_challenge.to_bits_le()?;
+        // let bits = obtained_verifier_challenge.to_bytes()?;
         let mut bytes = Vec::new();
-        for chunk in bits.chunks(8) {
-            // Convert each 8-bit chunk to a UInt8<ConstraintF<C>>
-            let byte = UInt8::<ConstraintF<C>>::from_bits_le(chunk);
-            bytes.push(byte);
-        }
+        // for chunk in bits.chunks(8) {
+        //     // Convert each 8-bit chunk to a UInt8<ConstraintF<C>>
+        //     let byte = UInt8::<ConstraintF<C>>::from_bits_le(chunk);
+        //     bytes.push(byte);
+        // }
 
         bytes.is_eq(&verifier_challenge)
     }
