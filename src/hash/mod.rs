@@ -12,10 +12,10 @@ use ark_crypto_primitives::{
 // use ark_ed_on_bls12_377::{EdwardsProjective, Fq};
 use ark_sponge::poseidon::PoseidonSponge;
 use ark_sponge::{CryptographicSponge, FieldBasedCryptographicSponge};
-// use ark_bn254::Fr;
+use ark_ed_on_bn254::Fr;
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 type C = JubJub;
-type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
+type ConstraintF = Fr;
 
 // pub mod helpers;
 
@@ -36,16 +36,16 @@ type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
 //     PedersenHash::evaluate(&params, input).map_err(|e| anyhow!("{:?}", e))
 // }
 
-type PoseidonHash = PoseidonSponge<ConstraintF<C>>;
+type PoseidonHash = PoseidonSponge<ConstraintF>;
 
 lazy_static! {
-    pub static ref POSEIDON_PARAMS: PoseidonConfig<ConstraintF<C>> = {
-        let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF<C>>(254, 2, 8, 24, 0);
-        PoseidonConfig::<ConstraintF<C>>::new(8, 24, 31, mds, ark, 2, 1)
+    pub static ref POSEIDON_PARAMS: PoseidonConfig<ConstraintF> = {
+        let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF>(254, 2, 8, 24, 0);
+        PoseidonConfig::<ConstraintF>::new(8, 24, 31, mds, ark, 2, 1)
     };
 }
 
-pub fn poseidon2_hash(input: &[u8]) -> Result<ConstraintF<C>> {
+pub fn poseidon2_hash(input: &[u8]) -> Result<ConstraintF> {
     // let sponge_params = helpers::poseidon_parameters_for_test()?;
     
     // pass in our hardcoded default params

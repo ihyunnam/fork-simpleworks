@@ -21,7 +21,7 @@ use derivative::Derivative;
 
 use crate::hash::poseidon2_hash;
 
-use super::ConstraintF;
+// use super::ConstraintF;
 
 pub struct Schnorr<C: CurveGroup> {
     _group: PhantomData<C>,

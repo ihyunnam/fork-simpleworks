@@ -26,7 +26,7 @@ pub use schnorr_signature_verify_gadget::SchnorrSignatureVerifyGadget;
 
 use self::schnorr::Schnorr;
 
-pub type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
+// pub type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
 
 pub type SimpleSchnorrConstraintF =
     <<EdwardsProjective as CurveGroup>::BaseField as Field>::BasePrimeField;

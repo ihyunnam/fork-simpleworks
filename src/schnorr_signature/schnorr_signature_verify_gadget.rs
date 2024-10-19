@@ -25,11 +25,11 @@ use std::borrow::Borrow;
 use std::marker::PhantomData;
 
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
-// use ark_bn254::Fr;
+use ark_ed_on_bn254::Fr;
 type C = JubJub;
-type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
+type ConstraintF = Fr;
 
-pub struct SchnorrSignatureVerifyGadget<C: CurveGroup, GC: CurveVar<C, ConstraintF<C>>>
+pub struct SchnorrSignatureVerifyGadget<C: CurveGroup, GC: CurveVar<C, ConstraintF>>
 where
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
 {
@@ -39,10 +39,10 @@ where
     _group_gadget: PhantomData<*const GC>,
 }
 
-impl<C, GC> SigVerifyGadget<Schnorr<C>, ConstraintF<C>> for SchnorrSignatureVerifyGadget<C, GC>
+impl<C, GC> SigVerifyGadget<Schnorr<C>, ConstraintF> for SchnorrSignatureVerifyGadget<C, GC>
 where
-    C: CurveGroup<BaseField = ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>,
-    GC: CurveVar<C, ConstraintF<C>>,
+    C: CurveGroup<BaseField = ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>,
+    GC: CurveVar<C, ConstraintF>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
     // C::BaseField: Field<BasePrimeField = ark_ed_on_bn254::Fq>,
 {
@@ -53,9 +53,9 @@ where
     fn verify(
         parameters: &Self::ParametersVar,
         public_key: &Self::PublicKeyVar,
-        message: &[UInt8<ConstraintF<C>>],
+        message: &[UInt8<ConstraintF>],
         signature: &Self::SignatureVar,
-    ) -> Result<Boolean<ConstraintF<C>>, SynthesisError>
+    ) -> Result<Boolean<ConstraintF>, SynthesisError>
     {
         let prover_response = signature.prover_response.clone();
         let verifier_challenge = signature.verifier_challenge.clone();
@@ -79,8 +79,8 @@ where
         hash_input.extend_from_slice(message);
         let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
         
-        let bytes: Vec<UInt8<ConstraintF<C>>> = obtained_verifier_challenge.to_bytes()?;
-
+        let bytes: Vec<UInt8<ConstraintF>> = obtained_verifier_challenge.to_bytes()?;
+        println!("hello1");
         bytes.is_eq(&verifier_challenge)
     }
 }
