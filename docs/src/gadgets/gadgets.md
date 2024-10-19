@@ -35,7 +35,7 @@ Boolean type inside a circuit/R1CS. Example:
 
 ```rust
 use ark_r1cs_std::bits::boolean::Boolean;
-use ark_ed_on_bls12_381::Fq;
+use ark_ed_on_bn254::Fq;
 
 let a = Boolean::new_input(cs, || Ok(true))?;
 a.enforce_equal(&Boolean::TRUE)?;

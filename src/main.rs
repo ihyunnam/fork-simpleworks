@@ -15,7 +15,7 @@ use simpleworks::schnorr_signature::SimpleSchnorrSignature;
 use std::time::Duration;
 // use ark_ec::bls12::Bls12;
 // use ark_bn254::{FrConfig};
-use ark_r1cs_std::groups::curves::twisted_edwards::AffineVar as TEAffineVar;
+// use ark_r1cs_std::groups::curves::twisted_edwards::ProjectiveVar;
 use ark_crypto_primitives::crh::poseidon::CRH;
 use ark_crypto_primitives::crh::poseidon::constraints::{CRHGadget, CRHParametersVar, TwoToOneCRHGadget};
 use ark_crypto_primitives::crh::poseidon::{TwoToOneCRH};
@@ -31,10 +31,11 @@ use ark_ff::{
     fields::{Field},
     UniformRand,
 };
-use ark_bn254::{Bn254 as E, FrConfig};
+use ark_bn254::{Bn254 as E, Fr};
 // use ark_bn254::{Bn254 as E};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, EmptyFlags, Validate};
-use ark_ed_on_bn254::{Fr, constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
+use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
+// edwardsprojective needed because curvegroup defined on projective, not affine
 
 // mod schnorr;
 // use schnorr::constraints::*;
@@ -82,9 +83,9 @@ type ConstraintF = Fr;
 type W = Window;
 // type GG = TEAffineVar<C, ConstraintF>;
 
-// type GG = EdwardsVar;
+type GG = EdwardsVar;
 // type GG = CurveVar<JubJub, Fr>;
-type GG = ark_r1cs_std::groups::curves::short_weierstrass::ProjectiveVar<ark_bn254::G1Projective, ark_bn254::Fr>;
+// type GG = ark_r1cs_std::groups::curves::twisted_edwards::group::TEProjective<ark_bn254::G1Projective, ark_bn254::Fr>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Window;
@@ -224,7 +225,7 @@ fn generate_insert_circuit() -> InsertCircuit<W,C,GG> {
 
 //     /* Generate Poseidon hash parameters for both Schnorr signature (Musig2) and v_i */      // 6, 5, 8, 57, 0
     
-//     let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (255, 2, 8, 24, 0);        // ark_bn254::FrParameters::MODULUS_BITS = 255
+//     let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (254, 2, 8, 24, 0);        // ark_bn254::FrParameters::MODULUS_BITS = 255
 
 //     let poseidon_params = PoseidonConfig::<ConstraintF>::new(8, 24, 31, mds, ark, 2, 1);
 //     /* Assume this is previous record */
@@ -369,22 +370,13 @@ fn generate_insert_circuit_for_setup() -> InsertCircuit<W,C,GG> {
 
 impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> where 
     W: ark_crypto_primitives::crh::pedersen::Window,
-    // ConstraintF: PrimeField,
-    C: CurveGroup<BaseField = ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>,
+    C: CurveGroup<BaseField = ark_bn254::Fr>,
     GG: CurveVar<C, ConstraintF>,
-        // + GroupOpsBounds<'_, ark_ec::twisted_edwards::TECurveConfig, GG>,
     for<'a> &'a GG: ark_r1cs_std::groups::GroupOpsBounds<'a, C, GG>,
-    // Namespace<<<C as CurveGroup>::BaseField as Field>::BasePrimeField>: From<ConstraintSystemRef<ConstraintF>>,
-    // C: CurveGroup<Affine = ark_ec::twisted_edwards::Affine<ark_ed_on_bn254::EdwardsConfig>>,
-    <C as CurveGroup>::BaseField: PrimeField,
     <C as CurveGroup>::BaseField: ark_crypto_primitives::sponge::Absorb,
-    Namespace<Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>: From<ConstraintSystemRef<<C as CurveGroup>::BaseField>>,
-    // <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>
 {
     fn generate_constraints(self, cs: ConstraintSystemRef<ConstraintF>) -> Result<(), SynthesisError> {
         println!("inside generate constraints");
-
-        let h_default = ConstraintF::default();      // This is ConstraintF
 
         let first_login_wtns = Boolean::<ConstraintF>::new_witness(
             cs.clone(), 
@@ -418,6 +410,8 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
         println!("here1");
         i_wtns.enforce_equal(&supposed_to_be_wtns);
 
+        // NUM CONSTRAINTS UP TO HERE: 41
+
         /* Verify (i-1)th signature, unless it's first login. */
         // let h_prev_wtns = UInt8::<ConstraintF>::new_witness_vec(
         //     cs.clone(),
@@ -429,7 +423,7 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
         //     },
         // ).unwrap();
 
-        let rng = &mut OsRng;
+        let rng = &mut OsRng;       // TODO: make all defaults static vars
         let default_sig = Signature::<C>{
             prover_response: C::ScalarField::rand(rng),
             verifier_challenge: vec![0u8;32],
@@ -462,10 +456,12 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
         let schnorr_msg_wtns = UInt8::<ConstraintF>::new_witness_vec(
             cs.clone(),
             self.schnorr_msg.as_ref().unwrap_or(&vec![0u8;32])
-        ).unwrap();
+        ).unwrap();      // this alone is 300~600 constraints
+
+        // NUM CONSTRAINTS UP TO HERE 800~1100
 
         println!("here2");
-        let verified: Boolean<ConstraintF> = <SchnorrSignatureVerifyGadget::<C, GG> as SigVerifyGadget::<Schnorr<C>, ConstraintF>>::verify(&schnorr_param_wtns, &schnorr_pk_wtns, &schnorr_msg_wtns, &schnorr_sig_wtns).unwrap();
+        let verified = SchnorrSignatureVerifyGadget::verify(&schnorr_param_wtns, &schnorr_pk_wtns, &schnorr_msg_wtns, &schnorr_sig_wtns).unwrap();
         println!("verified inside gadget {:?}", verified.value());
         println!("here3");
         let verified_select = first_login_wtns.select(&Boolean::<ConstraintF>::Constant(true), &verified).unwrap();
@@ -551,7 +547,7 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 
         // // hmac_wtns.enforce_equal(&reconstructed_hmac_wtns);
         
-        // let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (255, 2, 8, 24, 0);
+        // let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (254, 2, 8, 24, 0);
         // let poseidon_params_default = PoseidonConfig::<ConstraintF>::new(8, 24, 31, mds, ark, 2, 1);
 
         // let end = start.elapsed();
@@ -596,6 +592,7 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
         // let end = start.elapsed();
         // println!("end2 {:?}", end);
         
+        println!("num constaints at the end of generate_constraints {:?}", cs.num_constraints());
         Ok(())
     }
 }
@@ -617,7 +614,7 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 //         //     generator: EdwardsAffine::default(),
 //         //     salt: Some([0u8; 32]),
 //         // };
-//         let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (255, 2, 8, 24, 0);
+//         let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (254, 2, 8, 24, 0);
 //         let poseidon_params_default = PoseidonConfig::<ConstraintF>::new(8, 24, 31, mds, ark, 2, 1);
 //         let pedersen_rand_default = PedersenRandomness::<C>::default();
 //         let pedersen_param_default = PedersenParameters::<C> {
@@ -808,7 +805,7 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 //         ).unwrap();
 
 //         /* SCHNORR SIG VERIFY GADGET */
-//         let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (255, 2, 8, 24, 0);        // ark_bn254::FrParameters::MODULUS_BITS = 255
+//         let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (254, 2, 8, 24, 0);        // ark_bn254::FrParameters::MODULUS_BITS = 255
 //         let poseidon_params = PoseidonConfig::<ConstraintF>::new(8, 24, 31, mds, ark, 2, 1);
         
 //         let mut poseidon_params_wtns = CRHParametersVar::<ConstraintF>::new_variable(

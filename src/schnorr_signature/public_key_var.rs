@@ -8,7 +8,7 @@ use core::{borrow::Borrow, marker::PhantomData};
 use derivative::Derivative;
 
 // type ConstraintF = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
-type ConstraintF = ark_ed_on_bn254::Fr;
+type ConstraintF = ark_bn254::Fr;
 
 #[derive(Derivative)]
 #[derivative(

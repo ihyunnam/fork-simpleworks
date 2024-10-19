@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, marker::PhantomData};
 
-use ark_ed_on_bn254::Fr;
+use ark_bn254::Fr;
 // use ark_crypto_primitives::encryption::elgamal::constraints::ConstraintF;
 use ark_ec::{CurveGroup, Group};
 use ark_ff::{BigInteger, Field, MontBackend, PrimeField};
@@ -13,7 +13,7 @@ use derivative::Derivative;
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 type C = JubJub;
 // type ConstraintF = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
-type ConstraintF = ark_ed_on_bn254::Fr;
+type ConstraintF = ark_bn254::Fr;
 
 use super::schnorr::Signature;
 
@@ -38,8 +38,6 @@ where
     C: CurveGroup,
     GC: CurveVar<C, ConstraintF>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
-    // <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
-    // Namespace<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>: From<Namespace<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>>,
 {
     fn new_variable<T: Borrow<Signature<C>>>(
         cs: impl Into<Namespace<ConstraintF>>,
@@ -82,8 +80,8 @@ where
     C: CurveGroup,
     GC: CurveVar<C, ConstraintF>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
-    // <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>,
-    // Namespace<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>: From<Namespace<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>>,
+    // <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>,
+    // Namespace<ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>: From<Namespace<<<C as CurveGroup>::BaseField as ark_ff::Field>::BasePrimeField>>,
 {
     fn to_bytes(&self) -> Result<Vec<UInt8<ConstraintF>>, SynthesisError> {
         let prover_response_bytes = self.prover_response.to_bytes()?;

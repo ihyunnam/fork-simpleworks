@@ -11,9 +11,9 @@ use ark_relations::r1cs::{Namespace, SynthesisError};
 use super::schnorr::Parameters;
 
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
-type C = JubJub;
+// type C = JubJub;
 // type ConstraintF = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
-type ConstraintF = ark_ed_on_bn254::Fr;
+type ConstraintF = ark_bn254::Fr;
 
 #[derive(Clone)]
 pub struct ParametersVar<C: CurveGroup, GC: CurveVar<C, ConstraintF>>

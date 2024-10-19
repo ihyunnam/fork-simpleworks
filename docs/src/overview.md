@@ -68,10 +68,10 @@ Now we need to write the constraints for this circuit:
 use ark_r1cs_std::prelude::*;
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
 
-impl ConstraintSynthesizer<ark_ed_on_bls12_381::Fq> for TestCircuit {
+impl ConstraintSynthesizer<ark_ed_on_bn254::Fq> for TestCircuit {
     fn generate_constraints(
         self,
-        cs: ConstraintSystemRef<ark_ed_on_bls12_381::Fq>,
+        cs: ConstraintSystemRef<ark_ed_on_bn254::Fq>,
     ) -> Result<(), SynthesisError> {
         let a = UInt8::new_witness(ark_relations::ns!(cs, "a"), || Ok(self.a))?;
 
@@ -84,7 +84,7 @@ impl ConstraintSynthesizer<ark_ed_on_bls12_381::Fq> for TestCircuit {
 }
 ```
 
-For the generic `F` type, we are using a finite field defined in the `ark_ed_on_bls12_381` crate. This is a crate implementing the `bls 12-381` elliptic curve that we'll use later on for proving.
+For the generic `F` type, we are using a finite field defined in the `ark_ed_on_bn254` crate. This is a crate implementing the `bls 12-381` elliptic curve that we'll use later on for proving.
 
 To make our lives easier for now, we are using what Arkworks calls a `Gadget`. These are pre-generated circuits that we can use as building blocks for coding our constraints. You can sort of think of them as a standard library for circuits. In our example, we are using the `UInt8` gadget, a way of defining and manipulating unsigned 8 bit integers in this context. Later on we will be showing how to do this without gadgets, defining our constraint manually.
 
@@ -111,10 +111,10 @@ Doing the same with the `a` and `b` inputs being different should fail.
 Let's write the same `TestCircuit` as before, but without using the `UInt8` gadget. The struct definition is the same, but now the constraints are defined as follows:
 
 ```rust
-impl ConstraintSynthesizer<ark_ed_on_bls12_381::Fq> for TestCircuit {
+impl ConstraintSynthesizer<ark_ed_on_bn254::Fq> for TestCircuit {
     fn generate_constraints(
         self,
-        cs: ConstraintSystemRef<ark_ed_on_bls12_381::Fq>,
+        cs: ConstraintSystemRef<ark_ed_on_bn254::Fq>,
     ) -> Result<(), SynthesisError> {
         let a = cs.new_witness_variable(|| {
             Fq::try_from(self.a).map_err(|_| SynthesisError::AssignmentMissing)
@@ -124,7 +124,7 @@ impl ConstraintSynthesizer<ark_ed_on_bls12_381::Fq> for TestCircuit {
             Fq::try_from(self.b).map_err(|_| SynthesisError::AssignmentMissing)
         })?;
 
-        cs.enforce_constraint(lc!(), lc!(), lc!() + (ark_ed_on_bls12_381::Fq::one(), a) - (ark_ed_on_bls12_381::Fq::one(), b))?;
+        cs.enforce_constraint(lc!(), lc!(), lc!() + (ark_ed_on_bn254::Fq::one(), a) - (ark_ed_on_bn254::Fq::one(), b))?;
 
         Ok(())
     }
@@ -148,19 +148,19 @@ use ark_std::One;
 
 a = lc!()
 b = lc!()
-c = lc!() + (ark_ed_on_bls12_381::Fq::one(), a) - (ark_ed_on_bls12_381::Fq::one(), b)
+c = lc!() + (ark_ed_on_bn254::Fq::one(), a) - (ark_ed_on_bn254::Fq::one(), b)
 ```
 
 The macro `lc!()` is provided by Arkworks and just generates an empty linear combination, i.e., zero. For our `c`, we are substracting from variable
 
 ```rust
-(ark_ed_on_bls12_381::Fq::one(), a)
+(ark_ed_on_bn254::Fq::one(), a)
 ```
 
 the variable
 
 ```rust
-(ark_ed_on_bls12_381::Fq::one(), b)
+(ark_ed_on_bn254::Fq::one(), b)
 ```
 
 which is just a complicated way of saying `a - b` inside our finite field. Putting it all together, our constraint is
@@ -178,8 +178,8 @@ $$
 Note that this is not the only way of writing this constraint, in our case we could have also defined
 
 ```rust
-a = (ark_ed_on_bls12_381::Fq::one(), a) - (ark_ed_on_bls12_381::Fq::one(), b)
-b = (ark_ed_on_bls12_381::Fq::one(), 1)
+a = (ark_ed_on_bn254::Fq::one(), a) - (ark_ed_on_bn254::Fq::one(), b)
+b = (ark_ed_on_bn254::Fq::one(), 1)
 c = lc!()
 ```
 
@@ -202,7 +202,7 @@ The API for both generating and verifying proofs is incredibly simple:
 ```rust
 use ark_marlin::{Marlin, SimpleHashFiatShamirRng};
 
-use ark_bls12_381::{Bls12_381, Fr};
+use ark_bn254::{Bls12_381, Fr};
 use ark_poly::univariate::DensePolynomial;
 use ark_poly_commit::marlin_pc::MarlinKZG10;
 use blake2::Blake2s;

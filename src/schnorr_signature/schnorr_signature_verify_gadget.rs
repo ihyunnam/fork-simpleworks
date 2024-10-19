@@ -25,8 +25,8 @@ use std::borrow::Borrow;
 use std::marker::PhantomData;
 
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
-use ark_ed_on_bn254::Fr;
-type C = JubJub;
+use ark_bn254::Fr;
+// type C = JubJub;
 type ConstraintF = Fr;
 
 pub struct SchnorrSignatureVerifyGadget<C: CurveGroup, GC: CurveVar<C, ConstraintF>>
@@ -41,10 +41,9 @@ where
 
 impl<C, GC> SigVerifyGadget<Schnorr<C>, ConstraintF> for SchnorrSignatureVerifyGadget<C, GC>
 where
-    C: CurveGroup<BaseField = ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>,
+    C: CurveGroup<BaseField = ark_bn254::Fr>,
     GC: CurveVar<C, ConstraintF>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
-    // C::BaseField: Field<BasePrimeField = ark_ed_on_bn254::Fq>,
 {
     type ParametersVar = ParametersVar<C, GC>;
     type PublicKeyVar = PublicKeyVar<C, GC>;
@@ -63,7 +62,6 @@ where
         let mut claimed_prover_commitment = parameters
             .generator
             .scalar_mul_le(prover_response.to_bits_le()?.iter())?;
-        println!("claimed prover commitment {:?}", claimed_prover_commitment.value());
         let public_key_times_verifier_challenge = public_key
             .pub_key
             .scalar_mul_le(verifier_challenge.to_bits_le()?.iter())?;
@@ -80,7 +78,7 @@ where
         let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
         
         let bytes: Vec<UInt8<ConstraintF>> = obtained_verifier_challenge.to_bytes()?;
-        println!("hello1");
         bytes.is_eq(&verifier_challenge)
+        // Ok(Boolean::Constant(true))
     }
 }

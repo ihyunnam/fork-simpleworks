@@ -12,7 +12,7 @@ use ark_sponge::{
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 type C = JubJub;
 // type ConstraintF = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
-use ark_ed_on_bn254::Fr;
+use ark_bn254::Fr;
 type ConstraintF = Fr;
 
 type PoseidonGadget = PoseidonSpongeVar<ConstraintF>;
@@ -64,7 +64,7 @@ pub fn poseidon2_hash(input: &impl AbsorbGadget<ConstraintF>) -> Result<FpVar<Co
 
 //     // use crate::constraints::AbsorbGadget;
 //     // use crate::test::Fr;
-//     use ark_ed_on_bn254::Fr;
+//     use ark_bn254::Fr;
 //     // use crate::Absorb;
 //     use ark_r1cs_std::alloc::AllocVar;
 //     use ark_r1cs_std::fields::fp::FpVar;

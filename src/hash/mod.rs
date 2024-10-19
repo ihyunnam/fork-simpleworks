@@ -12,7 +12,7 @@ use ark_crypto_primitives::{
 // use ark_ed_on_bls12_377::{EdwardsProjective, Fq};
 use ark_sponge::poseidon::PoseidonSponge;
 use ark_sponge::{CryptographicSponge, FieldBasedCryptographicSponge};
-use ark_ed_on_bn254::Fr;
+use ark_bn254::Fr;
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 type C = JubJub;
 type ConstraintF = Fr;

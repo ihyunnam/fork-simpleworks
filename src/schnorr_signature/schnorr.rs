@@ -4,7 +4,7 @@ use std::ops::Mul;
 use ark_crypto_primitives::{Error, signature::SignatureScheme};
 // use ark_ec::{AffineCurve, CurveGroup};
 use ark_ec::CurveGroup;
-use ark_ed_on_bn254::Fr;
+// use ark_bn254::Fr;
 use ark_ff::{
     // bytes::ToBytes,
     BigInteger,
@@ -34,7 +34,7 @@ pub struct Parameters<C: CurveGroup> {
     pub salt: Option<[u8; 32]>,
 }
 
-pub type PublicKey<C> = <C as CurveGroup>::Affine;
+pub type PublicKey<C> = <C as CurveGroup>::Affine;      // subgroup of E(JubJub basefield) curvepoints, either affine or projective ok?
 
 #[derive(Clone, Default, Debug)]
 pub struct SecretKey<C: CurveGroup> {
@@ -87,7 +87,7 @@ pub struct Signature<C: CurveGroup> {
 impl<C: CurveGroup + Hash> SignatureScheme for Schnorr<C>
 where
     C::ScalarField: PrimeField,
-    // <C as CurveGroup>::Affine: Mul<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>
+    // <C as CurveGroup>::Affine: Mul<ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>
 {
     type Parameters = Parameters<C>;
     type PublicKey = PublicKey<C>;
@@ -148,7 +148,7 @@ where
             hash_input.extend_from_slice(&writer);
             hash_input.extend_from_slice(message);
 
-            let verifier_challenge_fe = poseidon2_hash(&hash_input).unwrap();   // make this constraintF<C> by making poseidon return such
+            let verifier_challenge_fe = poseidon2_hash(&hash_input).unwrap();       // poseidon returns ark_bn254::Fr (JubJub scalarfield) as rq
 
             (random_scalar, verifier_challenge_fe)
         };
