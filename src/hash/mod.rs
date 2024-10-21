@@ -1,5 +1,6 @@
 use ark_crypto_primitives::sponge::poseidon::{find_poseidon_ark_and_mds};
-use ark_ec::CurveGroup;
+use ark_ec::{CurveGroup, Group};
+use ark_ed_on_bn254::EdwardsConfig;
 use ark_ff::Field;
 use ark_sponge::poseidon::PoseidonConfig;
 use lazy_static::lazy_static;
@@ -12,10 +13,10 @@ use ark_crypto_primitives::{
 // use ark_ed_on_bls12_377::{EdwardsProjective, Fq};
 use ark_sponge::poseidon::PoseidonSponge;
 use ark_sponge::{CryptographicSponge, FieldBasedCryptographicSponge};
-use ark_bn254::Fr;
+// use ark_bn254::Fr;
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 type C = JubJub;
-type ConstraintF = Fr;
+type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
 
 // pub mod helpers;
 

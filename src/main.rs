@@ -1,5 +1,6 @@
 use ark_crypto_primitives::signature::SigVerifyGadget;
 use ark_ec::Group;
+use ark_ed_on_bn254::EdwardsConfig;
 // use ark_crypto_primitives::signature::{schnorr::Schnorr, constraints::SigVerifyGadget};
 use ark_ff::{BigInteger, BigInteger256};
 use ark_crypto_primitives::snark::SNARK;
@@ -78,12 +79,12 @@ use ark_groth16::Groth16;
 type C = JubJub;
 // type ConstraintF<C> = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
 // type ConstraintF = JubJub::ScalarField;
-type ConstraintF = Fr;
+// type ConstraintF = Fr;
 // type P = MiMCParameters;
 type W = Window;
 // type GG = TEAffineVar<C, ConstraintF>;
-
-type GG = EdwardsVar;
+type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
+// type GG = EdwardsVar;
 // type GG = CurveVar<JubJub, Fr>;
 // type GG = ark_r1cs_std::groups::curves::twisted_edwards::group::TEProjective<ark_bn254::G1Projective, ark_bn254::Fr>;
 
@@ -369,6 +370,7 @@ fn generate_insert_circuit_for_setup() -> InsertCircuit<W,C,GG> {
 /* zkSNARK proof generation */
 
 impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> where 
+    // ConstraintF: 
     W: ark_crypto_primitives::crh::pedersen::Window,
     C: CurveGroup<BaseField = ark_bn254::Fr>,
     GG: CurveVar<C, ConstraintF>,
@@ -425,8 +427,8 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 
         let rng = &mut OsRng;       // TODO: make all defaults static vars
         let default_sig = Signature::<C>{
-            prover_response: Fr::rand(rng),
-            verifier_challenge: Fr::rand(rng),
+            prover_response: C::ScalarField::rand(rng),
+            verifier_challenge: C::ScalarField::rand(rng),
             _curve: PhantomData::<C>,
         };
         let schnorr_sig_wtns = SchnorrSignatureVar::<C,GG>::new_variable(

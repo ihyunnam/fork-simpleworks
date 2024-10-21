@@ -1,5 +1,5 @@
-use ark_ec::AffineRepr;
-use std::ops::Mul;
+use ark_ec::{AffineRepr, Group};
+use std::{borrow::Borrow, ops::Mul};
 
 use ark_crypto_primitives::{Error, signature::SignatureScheme};
 // use ark_ec::{AffineCurve, CurveGroup};
@@ -38,7 +38,7 @@ pub type PublicKey<C> = <C as CurveGroup>::Affine;      // subgroup of E(JubJub 
 
 #[derive(Clone, Default, Debug)]
 pub struct SecretKey<C: CurveGroup> {
-    pub secret_key: Fr,
+    pub secret_key: C::ScalarField,
     pub public_key: PublicKey<C>,
 }
 
@@ -80,16 +80,16 @@ impl<C: CurveGroup> CanonicalSerialize for SecretKey<C> {
 
 #[derive(Clone, Default, Debug)]
 pub struct Signature<C: CurveGroup> {
-    pub prover_response: Fr,        // JubJub basefield i.e. Bn254::Fr
+    pub prover_response: C::ScalarField,        // JubJub basefield i.e. Bn254::Fr
     // pub verifier_challenge: Vec<u8>,
-    pub verifier_challenge: Fr,
+    pub verifier_challenge: C::ScalarField,
     pub _curve: PhantomData<C>,
 }
 
 impl<C: CurveGroup + Hash> SignatureScheme for Schnorr<C>
 where
     C::BaseField: PrimeField,
-    // <C as CurveGroup>::Affine: Mul<ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>
+    <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>,
 {
     type Parameters = Parameters<C>;
     type PublicKey = PublicKey<C>;
@@ -109,8 +109,8 @@ where
     ) -> Result<(Self::PublicKey, Self::SecretKey), Error>  {
         // Secret is a random scalar x
         // the pubkey is y = xG
-        let secret_key = Fr::rand(rng);
-        let public_key = parameters.generator.mul_bigint(secret_key.into_bigint()).into_affine();
+        let secret_key = C::ScalarField::rand(rng);
+        let public_key = parameters.generator.mul(secret_key).into_affine();
 
         Ok((
             public_key,
@@ -126,14 +126,16 @@ where
         sk: &Self::SecretKey,
         message: &[u8],
         rng: &mut R,
-    ) -> Result<Self::Signature, Error> {
+    ) -> Result<Self::Signature, Error> 
+    // where ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>: Mul<<C as Group>::ScalarField>
+    {
         // (k, e);
         // let (random_scalar, verifier_challenge_fe) = {
             // Sample a random scalar `k` from the prime scalar field.
-            let random_scalar = Fr::rand(rng);      // BaseField IS Fr
+            let random_scalar = C::ScalarField::rand(rng);      // BaseField IS Fr
             // Commit to the random scalar via r := k · G.
             // This is the prover's first msg in the Sigma protocol.
-            let prover_commitment = parameters.generator.mul_bigint(random_scalar.into_bigint()).into_affine();
+            let prover_commitment = parameters.generator.mul(random_scalar).into_affine();
             // println!("actual prover commitment {:?}", prover_commitment);
             // Hash everything to get verifier challenge.
             // e := H(salt || pubkey || r || msg);
@@ -152,7 +154,9 @@ where
             hash_input.extend_from_slice(message);
 
             let verifier_challenge_fe = poseidon2_hash::<C>(&hash_input).unwrap();       // poseidon returns ark_bn254::Fr (JubJub BaseField) as rq
+            let verifier_challenge = C::ScalarField::from_le_bytes_mod_order(&verifier_challenge_fe.into_bigint().to_bytes_le());
 
+            // let verifier_challenge_bytes = verifier_challenge_fe.into_bigint().to_bytes_le();
         //     (random_scalar, verifier_challenge_fe)
         // };
 
@@ -162,10 +166,10 @@ where
         // let verifier_challenge_bytes = verifier_challenge_fe.into_bigint().to_bytes_le();
 
         // k - xe;
-        let prover_response = random_scalar - (verifier_challenge_fe.mul(sk.secret_key));
+        let prover_response = random_scalar - (verifier_challenge.mul(sk.secret_key));
         let signature = Signature {
             prover_response,
-            verifier_challenge: verifier_challenge_fe,     // TODO: CONSTRAINTF<C> INTO BYTES --> var as vec<uint<constraintf<C>>>
+            verifier_challenge: verifier_challenge,     // TODO: CONSTRAINTF<C> INTO BYTES --> var as vec<uint<constraintf<C>>>
             _curve: PhantomData,
         };
 

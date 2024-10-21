@@ -1,5 +1,6 @@
 use super::schnorr::PublicKey;
-use ark_ec::CurveGroup;
+use ark_ec::{CurveGroup, Group};
+use ark_ed_on_bn254::EdwardsConfig;
 use ark_ff::Field;
 use ark_r1cs_std::{bits::uint8::UInt8, prelude::*};
 use ark_relations::r1cs::{Namespace, SynthesisError};
@@ -8,7 +9,8 @@ use core::{borrow::Borrow, marker::PhantomData};
 use derivative::Derivative;
 
 // type ConstraintF = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
-type ConstraintF = ark_bn254::Fr;
+// type ConstraintF = ark_bn254::Fr;
+type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
 
 #[derive(Derivative)]
 #[derivative(

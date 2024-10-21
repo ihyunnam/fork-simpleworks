@@ -1,7 +1,7 @@
 use crate::hash::POSEIDON_PARAMS;
 use crate::hash;
 use anyhow::{anyhow, Result};
-use ark_ec::CurveGroup;
+use ark_ec::{CurveGroup, Group};
 use ark_ff::Field;
 use ark_r1cs_std::{fields::fp::FpVar, R1CSVar};
 use ark_sponge::{
@@ -9,11 +9,11 @@ use ark_sponge::{
     poseidon::constraints::PoseidonSpongeVar,
 };
 
-use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
+use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsConfig, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 type C = JubJub;
 // type ConstraintF = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
-use ark_bn254::Fr;
-type ConstraintF = Fr;
+// use ark_bn254::Fr;
+type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
 
 type PoseidonGadget = PoseidonSpongeVar<ConstraintF>;
 

@@ -1,7 +1,7 @@
 use std::{borrow::Borrow, marker::PhantomData};
 
 // use ark_crypto_primitives::encryption::elgamal::constraints::ConstraintF;
-use ark_ec::CurveGroup;
+use ark_ec::{CurveGroup, Group};
 use ark_ff::Field;
 use ark_r1cs_std::{
     prelude::{AllocVar, AllocationMode, CurveVar, GroupOpsBounds},
@@ -10,10 +10,11 @@ use ark_r1cs_std::{
 use ark_relations::r1cs::{Namespace, SynthesisError};
 use super::schnorr::Parameters;
 
-use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
+use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsConfig, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 // type C = JubJub;
 // type ConstraintF = <<C as CurveGroup>::BaseField as Field>::BasePrimeField;
-type ConstraintF = ark_bn254::Fr;
+// type ConstraintF = ark_bn254::Fr;
+type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
 
 #[derive(Clone)]
 pub struct ParametersVar<C: CurveGroup, GC: CurveVar<C, ConstraintF>>

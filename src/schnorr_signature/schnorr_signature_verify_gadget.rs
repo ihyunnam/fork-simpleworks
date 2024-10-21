@@ -1,4 +1,5 @@
 use ark_crypto_primitives::crh::sha256::digest::KeyInit;
+use ark_ed_on_bn254::EdwardsConfig;
 use ark_r1cs_std::R1CSVar;
 use crate::gadgets::poseidon2_hash;
 
@@ -25,9 +26,9 @@ use std::borrow::Borrow;
 use std::marker::PhantomData;
 
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
-use ark_bn254::Fr;
-// type C = JubJub;
-type ConstraintF = Fr;
+// use ark_bn254::Fr;
+type C = JubJub;
+type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
 
 pub struct SchnorrSignatureVerifyGadget<C: CurveGroup, GC: CurveVar<C, ConstraintF>>
 where
@@ -44,6 +45,7 @@ where
     C: CurveGroup<BaseField = ark_bn254::Fr>,
     GC: CurveVar<C, ConstraintF>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
+    <C as Group>::ScalarField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FrConfig, 4>, 4>>
 {
     type ParametersVar = ParametersVar<C, GC>;
     type PublicKeyVar = PublicKeyVar<C, GC>;
