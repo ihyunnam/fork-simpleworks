@@ -461,13 +461,13 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 
         // NUM CONSTRAINTS UP TO HERE 800~1100
 
-        println!("here2");
-        let verified = SchnorrSignatureVerifyGadget::verify(&schnorr_param_wtns, &schnorr_pk_wtns, &schnorr_msg_wtns, &schnorr_sig_wtns).unwrap();
-        println!("verified inside gadget {:?}", verified.value());
-        println!("here3");
-        let verified_select = first_login_wtns.select(&Boolean::<ConstraintF>::Constant(true), &verified).unwrap();
-        println!("here4");
-        verified_select.enforce_equal(&Boolean::Constant(true));
+        // println!("here2");
+        // let verified = SchnorrSignatureVerifyGadget::verify(&schnorr_param_wtns, &schnorr_pk_wtns, &schnorr_msg_wtns, &schnorr_sig_wtns).unwrap();
+        // println!("verified inside gadget {:?}", verified.value());
+        // println!("here3");
+        // let verified_select = first_login_wtns.select(&Boolean::<ConstraintF>::Constant(true), &verified).unwrap();
+        // println!("here4");
+        // verified_select.enforce_equal(&Boolean::Constant(true));
         
         // // println!("enforce equal 3 {:?}", computed_hash_wtns.is_eq(&h_cur_wtns).unwrap().value());
         // let end = start.elapsed();
