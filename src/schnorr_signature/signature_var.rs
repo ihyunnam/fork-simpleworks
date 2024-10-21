@@ -12,8 +12,9 @@ use ark_r1cs_std::{
 use ark_relations::r1cs::{Namespace, SynthesisError};
 use derivative::Derivative;
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
-type C = JubJub;
+// type C = JubJub;
 type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
+// type ConstraintF = <C as Group>::ScalarField;
 // type ConstraintF = ark_bn254::Fr;
 
 use super::schnorr::Signature;
@@ -26,6 +27,7 @@ use super::schnorr::Signature;
 pub struct SignatureVar<C: CurveGroup, GC: CurveVar<C, ConstraintF>>
 where
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
+    // ConstraintF = <C as Group>::ScalarField
 {
     // pub prover_response: Vec<UInt8<ConstraintF>>,
     // pub verifier_challenge: Vec<UInt8<ConstraintF>>,      // TODO: ADD (crate) back in for both

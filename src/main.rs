@@ -7,6 +7,7 @@ use ark_crypto_primitives::snark::SNARK;
 use ark_ec::pairing::Pairing;
 // use ark_ec::twisted_edwards::GroupProjective;
 use ark_r1cs_std::fields::fp::FpVar;
+use ark_r1cs_std::groups::curves::twisted_edwards::AffineVar;
 use ark_sponge::poseidon::find_poseidon_ark_and_mds;
 use bitvec::view::AsBits;
 use simpleworks::schnorr_signature::SimpleSchnorrSignature;
@@ -83,10 +84,11 @@ type C = JubJub;
 // type P = MiMCParameters;
 type W = Window;
 // type GG = TEAffineVar<C, ConstraintF>;
-type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
-// type GG = EdwardsVar;
+
 // type GG = CurveVar<JubJub, Fr>;
 // type GG = ark_r1cs_std::groups::curves::twisted_edwards::group::TEProjective<ark_bn254::G1Projective, ark_bn254::Fr>;
+type ConstraintF = <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField;
+type GG = AffineVar<EdwardsConfig, FpVar<<ark_ec::twisted_edwards::Projective<EdwardsConfig> as CurveGroup>::BaseField>>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Window;
@@ -370,12 +372,11 @@ fn generate_insert_circuit_for_setup() -> InsertCircuit<W,C,GG> {
 /* zkSNARK proof generation */
 
 impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> where 
-    // ConstraintF: 
     W: ark_crypto_primitives::crh::pedersen::Window,
-    C: CurveGroup<BaseField = ark_bn254::Fr>,
-    GG: CurveVar<C, ConstraintF>,
+    C: CurveGroup,
+    GG: CurveVar<C, <ark_ec::twisted_edwards::Projective<EdwardsConfig> as Group>::ScalarField>,
     for<'a> &'a GG: ark_r1cs_std::groups::GroupOpsBounds<'a, C, GG>,
-    <C as CurveGroup>::BaseField: ark_crypto_primitives::sponge::Absorb,
+    <C as Group>::ScalarField: ark_crypto_primitives::sponge::Absorb,
 {
     fn generate_constraints(self, cs: ConstraintSystemRef<ConstraintF>) -> Result<(), SynthesisError> {
         println!("inside generate constraints");
@@ -427,8 +428,8 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 
         let rng = &mut OsRng;       // TODO: make all defaults static vars
         let default_sig = Signature::<C>{
-            prover_response: C::ScalarField::rand(rng),
-            verifier_challenge: C::ScalarField::rand(rng),
+            prover_response: <C as Group>::ScalarField::rand(rng),
+            verifier_challenge: <C as Group>::ScalarField::rand(rng),
             _curve: PhantomData::<C>,
         };
         let schnorr_sig_wtns = SchnorrSignatureVar::<C,GG>::new_variable(
