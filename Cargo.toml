@@ -15,6 +15,7 @@ ark-groth16 = { version = "0.4.0", default-features = true }
 arkworks-mimc = { git = "https://github.com/ihyunnam/arkworks-mimc.git", default-features = false, features = ["mimc-7-91-bn254"], rev = "03c846d" }
 
 # Arkworks dependencies
+merlin = "3.0.0"
 ark-ff = { version = "^0.4.0", default-features = false }
 ark-ec = { version = "^0.4.0", default-features = false }
 #ark-ed-on-bls12-377 = { version = "^0.4.0", features = ["r1cs"] }
@@ -29,6 +30,7 @@ ark-r1cs-std = { version = "^0.4.0", default-features = false }
 ark-snark = { version = "^0.4.0", default-features = false }
 ark-serialize = { version = "^0.4.0", default-features = false }
 ark-crypto-primitives = { version = "^0.4.0", default-features = false, features = [ "r1cs", "crh", "signature" ] }
+ark-spartan = { git = "https://github.com/arkworks-rs/spartan.git" }
 ark-sponge = { version = "^0.4.0-alpha", default-features = false, features = ["r1cs"] }
 lazy_static = "1.4"
 ark-ed-on-bn254 = { version = "^0.4.0", default-features = false, features = [ "r1cs" ] }

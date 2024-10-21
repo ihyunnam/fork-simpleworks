@@ -1,8 +1,10 @@
+use ark_ed_on_bn254::EdwardsConfig;
+use merlin::Transcript;
 use ark_crypto_primitives::signature::SigVerifyGadget;
 use ark_ec::Group;
 // use ark_crypto_primitives::signature::{schnorr::Schnorr, constraints::SigVerifyGadget};
 use ark_ff::{BigInteger, BigInteger256};
-use ark_crypto_primitives::snark::SNARK;
+// use ark_crypto_primitives::snark::SNARK;
 use ark_ec::pairing::Pairing;
 // use ark_ec::twisted_edwards::GroupProjective;
 use ark_r1cs_std::fields::fp::FpVar;
@@ -31,8 +33,10 @@ use ark_ff::{
     fields::{Field},
     UniformRand,
 };
-use ark_bn254::{Bn254 as E, Fr};
+use ark_bn254::{Bn254 as E, Fr, G1Projective};
 // use ark_bn254::{Bn254 as E};
+use libspartan::{Assignment, Instance, NIZKGens, SNARKGens, NIZK, SNARK};
+
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, EmptyFlags, Validate};
 use ark_ed_on_bn254::{constraints::EdwardsVar, EdwardsProjective as JubJub};   // Fq2: finite field, JubJub: curve group
 // edwardsprojective needed because curvegroup defined on projective, not affine
@@ -461,12 +465,12 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 
         // NUM CONSTRAINTS UP TO HERE 800~1100
 
-        // println!("here2");
-        // let verified = SchnorrSignatureVerifyGadget::verify(&schnorr_param_wtns, &schnorr_pk_wtns, &schnorr_msg_wtns, &schnorr_sig_wtns).unwrap();
-        // println!("verified inside gadget {:?}", verified.value());
-        // println!("here3");
-        // let verified_select = first_login_wtns.select(&Boolean::<ConstraintF>::Constant(true), &verified).unwrap();
-        // println!("here4");
+        println!("here2");
+        let verified = SchnorrSignatureVerifyGadget::verify(&schnorr_param_wtns, &schnorr_pk_wtns, &schnorr_msg_wtns, &schnorr_sig_wtns).unwrap();
+        println!("verified inside gadget {:?}", verified.value());
+        println!("here3");
+        let verified_select = first_login_wtns.select(&Boolean::<ConstraintF>::Constant(true), &verified).unwrap();
+        println!("here4");
         // verified_select.enforce_equal(&Boolean::Constant(true));
         
         // // println!("enforce equal 3 {:?}", computed_hash_wtns.is_eq(&h_cur_wtns).unwrap().value());
@@ -927,36 +931,64 @@ fn main() {
     for i in 0..10 {
         println!("InsertCircuit iteration {:?}", i);
         let rng = &mut OsRng;
-        let new_circuit = generate_insert_circuit_for_setup();
+        let new_circuit: InsertCircuit<Window, ark_ec::twisted_edwards::Projective<EdwardsConfig>, ark_r1cs_std::groups::curves::twisted_edwards::AffineVar<EdwardsConfig, FpVar<Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>>> = generate_insert_circuit();
         
-        let start = Instant::now();
-        // let new_circuit_for_setup = generate_logging_circuit_for_setup();
-        logistics_total += start.elapsed();
+        let cs: ConstraintSystemRef<ConstraintF> = ConstraintSystem::new_ref();
+        // this Fq must be same as ConstraintMatrices<Fq>
+        cs.set_mode(SynthesisMode::Prove{construct_matrices: true});
+        new_circuit.generate_constraints(cs.clone()).unwrap();
+        cs.finalize();
+        println!("before matrices");
+        let matrices: ConstraintMatrices<ConstraintF> = cs.to_matrices().unwrap();
+        println!("here???");
+        let num_cons = cs.num_constraints();
+        println!("here?");
+
+        let num_vars = cs.num_witness_variables();
+        println!("here??");
+        let num_inputs = cs.num_instance_variables();
+        let num_non_zero_entries = matrices.a_num_non_zero + matrices.b_num_non_zero + matrices.c_num_non_zero;
+        let gens = SNARKGens::<G1Projective>::new(num_cons, num_vars, num_inputs, num_non_zero_entries);
+
+        let a_flat = flatten_vec_vec(matrices.a);
+        let b_flat = flatten_vec_vec(matrices.b);
+        let c_flat = flatten_vec_vec(matrices.c);
         
-        let start = Instant::now();
-        let (pk, vk) = Groth16::<E>::circuit_specific_setup(new_circuit, rng).unwrap();
-        let pvk: ark_groth16::PreparedVerifyingKey<E> = Groth16::<E>::process_vk(&vk).unwrap();
-        println!("LENGTH: {:?}", pvk.vk.gamma_abc_g1.len());
-        setup_total += start.elapsed();
+        // let gens = NIZKGens::<G1Projective>::new(num_cons, num_vars, num_inputs);
+        // this Fq must be same as constraintsmatrices<fq> i.e. ConstraintSystemRef<Fq>
+        println!("num_cons {:?}", num_cons);
+        println!("num_vars {:?}", num_vars);
+        println!("num_inputs {:?}", num_inputs);
+        // println!("a_flat {:?}", a_flat);
+        // println!("b_flat {:?}", b_flat);
+        // println!("c_flat {:?}", c_flat);
+        let inst: Instance<ConstraintF> = Instance::<ConstraintF>::new(num_cons, num_vars, num_inputs, &a_flat, &b_flat, &c_flat).unwrap();
 
-        let new_circuit = generate_insert_circuit();
-    
-        let start = Instant::now();
-        let proof = Groth16::<E>::prove(
-            &pk,
-            new_circuit,
-            rng
-        ).unwrap();
-        proof_time_total += start.elapsed();
+        let instance_assignment = cs.clone().into_inner().unwrap().instance_assignment;
+        let instance_assignment_var = Assignment::<ConstraintF>::new(&instance_assignment).unwrap();
+        let witness_assignment = cs.into_inner().unwrap().witness_assignment;
+        let witness_assignment_var = Assignment::<ConstraintF>::new(&witness_assignment).unwrap();
 
-        let start = Instant::now();
-        let verified = Groth16::<E>::verify_with_processed_vk(
-            &pvk,
-            &[],        // NOTE: No public inputs for new users (because they weren't supplied for prove phase)
-            &proof,
-        );
-        verify_time_total += start.elapsed();
-        println!("{:?}", verified);
+    // create a commitment to the R1CS instance
+    let (comm, decomm) = SNARK::encode(&inst, &gens);
+
+    // produce a proof of satisfiability
+    let mut prover_transcript = Transcript::new(b"snark_example");
+    let proof = SNARK::prove(
+        &inst,
+        &comm,
+        &decomm,
+        witness_assignment_var,
+        &instance_assignment_var,
+        &gens,
+        &mut prover_transcript,
+    );
+
+    // verify the proof of satisfiability
+    let mut verifier_transcript = Transcript::new(b"snark_example");
+    assert!(proof
+        .verify(&comm, &instance_assignment_var, &mut verifier_transcript, &gens)
+        .is_ok());
     }
 
     println!("InsertCircuit Logistics time: {:?}", logistics_total/10);
@@ -1013,4 +1045,21 @@ fn main() {
     // println!("LoggingCircuit Setup time: {:?}", setup_total/10);
     // println!("LoggingCircuit Prove time: {:?}", proof_time_total.as_millis()/10);
     // println!("LoggingCircuit Verify time: {:?}", verify_time_total.as_millis()/10);
+}
+
+fn flatten_vec_vec (
+    input: Vec<Vec<(ConstraintF, usize)>>
+) -> Vec<(usize, usize, ConstraintF)> {
+    // Flatten and map the vectors
+    let mut result = input.into_iter()
+        .enumerate()
+        .flat_map(|(i, inner_vec)| {
+            inner_vec.into_iter().enumerate().map(move |(j, (fp, usize_val))| {
+                (i, usize_val, fp) // Reordering the tuple elements
+            })
+        })
+        .collect::<Vec<_>>();
+
+    // result.shrink_to_fit(); // Make sure the vector uses the exact memory size needed
+    result
 }
