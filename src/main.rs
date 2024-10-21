@@ -153,8 +153,8 @@ fn generate_insert_circuit() -> InsertCircuit<W,C,GG> {
     println!("Generating InsertCircuit");
     let rng = &mut OsRng;
         
-    let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF> (254, 2, 8, 24, 0);        // ark_bn254::FrParameters::MODULUS_BITS = 255
-    let poseidon_params = PoseidonConfig::<ConstraintF>::new(8, 24, 31, mds, ark, 2, 1);
+    let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF>(254, 2, 8, 31, 0);
+    let poseidon_params = PoseidonConfig::<ConstraintF>::new(8, 31, 17, mds, ark, 2, 1);
 
     /* Generate user MiMC key */
     let mut mimc = <MiMCNonFeistelCRH<ConstraintF, MiMCMock> as CRHScheme>::setup(rng).unwrap();
@@ -425,8 +425,9 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
 
         let rng = &mut OsRng;       // TODO: make all defaults static vars
         let default_sig = Signature::<C>{
-            prover_response: C::ScalarField::rand(rng),
-            verifier_challenge: vec![0u8;32],
+            prover_response: Fr::rand(rng),
+            verifier_challenge: Fr::rand(rng),
+            _curve: PhantomData::<C>,
         };
         let schnorr_sig_wtns = SchnorrSignatureVar::<C,GG>::new_variable(
             cs.clone(),
@@ -443,14 +444,14 @@ impl<W, C, GG> ConstraintSynthesizer<ConstraintF> for InsertCircuit<W,C,GG> wher
         let schnorr_param_wtns = SchnorrParametersVar::<C,GG>::new_variable(
             cs.clone(),
             || Ok(self.schnorr_params.as_ref().unwrap_or(&default_schnorr_params)),
-            AllocationMode::Witness,
+            AllocationMode::Constant,
         ).unwrap();
 
         let affine_default = C::Affine::default();
         let schnorr_pk_wtns = PublicKeyVar::<C,GG>::new_variable(
             cs.clone(),
             || Ok(self.schnorr_pk.as_ref().unwrap_or(&affine_default)),
-            AllocationMode::Witness,
+            AllocationMode::Input,
         ).unwrap();
 
         let schnorr_msg_wtns = UInt8::<ConstraintF>::new_witness_vec(

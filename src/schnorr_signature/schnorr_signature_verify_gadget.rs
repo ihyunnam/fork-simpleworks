@@ -56,6 +56,7 @@ where
         signature: &Self::SignatureVar,
     ) -> Result<Boolean<ConstraintF>, SynthesisError>
     {
+        // let hello = FpVar::<ConstraintF
         let prover_response = signature.prover_response.clone();
         let verifier_challenge = signature.verifier_challenge.clone();
 
@@ -67,18 +68,19 @@ where
             .scalar_mul_le(verifier_challenge.to_bits_le()?.iter())?;
         claimed_prover_commitment += &public_key_times_verifier_challenge;
 
+        println!("claimed_prover_commitment inside gadget {:?}", claimed_prover_commitment.to_bytes()?.value());
         let mut hash_input = Vec::new();
-        if let Some(salt) = parameters.salt.as_ref() {
-            hash_input.extend_from_slice(salt);
-        }
+        // if let Some(salt) = parameters.salt.as_ref() {
+        //     hash_input.extend_from_slice(salt);
+        // }
         
         hash_input.extend_from_slice(&public_key.pub_key.to_bytes()?);
         hash_input.extend_from_slice(&claimed_prover_commitment.to_bytes()?);
         hash_input.extend_from_slice(message);
         let obtained_verifier_challenge = poseidon2_hash(&hash_input).unwrap();
         
-        let bytes: Vec<UInt8<ConstraintF>> = obtained_verifier_challenge.to_bytes()?;
-        bytes.is_eq(&verifier_challenge)
+        // let bytes: Vec<UInt8<ConstraintF>> = obtained_verifier_challenge.to_bytes()?;
+        obtained_verifier_challenge.is_eq(&verifier_challenge)
         // Ok(Boolean::Constant(true))
     }
 }

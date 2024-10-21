@@ -4,7 +4,7 @@ use std::ops::Mul;
 use ark_crypto_primitives::{Error, signature::SignatureScheme};
 // use ark_ec::{AffineCurve, CurveGroup};
 use ark_ec::CurveGroup;
-// use ark_bn254::Fr;
+use ark_bn254::Fr;
 use ark_ff::{
     // bytes::ToBytes,
     BigInteger,
@@ -38,7 +38,7 @@ pub type PublicKey<C> = <C as CurveGroup>::Affine;      // subgroup of E(JubJub 
 
 #[derive(Clone, Default, Debug)]
 pub struct SecretKey<C: CurveGroup> {
-    pub secret_key: C::ScalarField,
+    pub secret_key: Fr,
     pub public_key: PublicKey<C>,
 }
 
@@ -80,13 +80,15 @@ impl<C: CurveGroup> CanonicalSerialize for SecretKey<C> {
 
 #[derive(Clone, Default, Debug)]
 pub struct Signature<C: CurveGroup> {
-    pub prover_response: C::ScalarField,
-    pub verifier_challenge: Vec<u8>,
+    pub prover_response: Fr,        // JubJub basefield i.e. Bn254::Fr
+    // pub verifier_challenge: Vec<u8>,
+    pub verifier_challenge: Fr,
+    pub _curve: PhantomData<C>,
 }
 
 impl<C: CurveGroup + Hash> SignatureScheme for Schnorr<C>
 where
-    C::ScalarField: PrimeField,
+    C::BaseField: PrimeField,
     // <C as CurveGroup>::Affine: Mul<ark_ff::Fp<MontBackend<ark_bn254::FrConfig, 4>, 4>>
 {
     type Parameters = Parameters<C>;
@@ -107,8 +109,8 @@ where
     ) -> Result<(Self::PublicKey, Self::SecretKey), Error>  {
         // Secret is a random scalar x
         // the pubkey is y = xG
-        let secret_key = C::ScalarField::rand(rng);
-        let public_key = parameters.generator.mul(secret_key).into_affine();
+        let secret_key = Fr::rand(rng);
+        let public_key = parameters.generator.mul_bigint(secret_key.into_bigint()).into_affine();
 
         Ok((
             public_key,
@@ -126,43 +128,45 @@ where
         rng: &mut R,
     ) -> Result<Self::Signature, Error> {
         // (k, e);
-        let (random_scalar, verifier_challenge_fe) = {
+        // let (random_scalar, verifier_challenge_fe) = {
             // Sample a random scalar `k` from the prime scalar field.
-            let random_scalar: C::ScalarField = C::ScalarField::rand(rng);      // SCALARFIELD IS Fr
+            let random_scalar = Fr::rand(rng);      // BaseField IS Fr
             // Commit to the random scalar via r := k · G.
             // This is the prover's first msg in the Sigma protocol.
-            let prover_commitment = parameters.generator.mul(random_scalar).into_affine();
-            println!("actual prover commitment {:?}", prover_commitment);
+            let prover_commitment = parameters.generator.mul_bigint(random_scalar.into_bigint()).into_affine();
+            // println!("actual prover commitment {:?}", prover_commitment);
             // Hash everything to get verifier challenge.
             // e := H(salt || pubkey || r || msg);
             let mut hash_input = Vec::new();
-            if let Some(salt) = parameters.salt {
-                hash_input.extend_from_slice(&salt);
-                // println!("salt actual {:?}", salt); - NO SALT
-            }
+            // if let Some(salt) = parameters.salt {
+            //     hash_input.extend_from_slice(&salt);
+            //     // println!("salt actual {:?}", salt); - NO SALT
+            // }        // WE IGNORE SALT
             let mut writer = vec![];
             sk.public_key.serialize_uncompressed(&mut writer).unwrap();
             hash_input.extend_from_slice(&writer);
             writer.clear();
             prover_commitment.serialize_uncompressed(&mut writer).unwrap();
+            println!("actual prover commitment {:?}", writer);
             hash_input.extend_from_slice(&writer);
             hash_input.extend_from_slice(message);
 
-            let verifier_challenge_fe = poseidon2_hash(&hash_input).unwrap();       // poseidon returns ark_bn254::Fr (JubJub scalarfield) as rq
+            let verifier_challenge_fe = poseidon2_hash::<C>(&hash_input).unwrap();       // poseidon returns ark_bn254::Fr (JubJub BaseField) as rq
 
-            (random_scalar, verifier_challenge_fe)
-        };
+        //     (random_scalar, verifier_challenge_fe)
+        // };
 
         // println!("VERIFIER CHALLENGE HERE {:?}", &verifier_challenge_fe.into_bigint().to_bytes_le());
-        let verifier_challenge = C::ScalarField::from_le_bytes_mod_order(&verifier_challenge_fe.into_bigint().to_bytes_le());
+        // let verifier_challenge = C::BaseField::from_le_bytes_mod_order(&verifier_challenge_fe.into_bigint().to_bytes_le());
 
-        let verifier_challenge_bytes = verifier_challenge_fe.into_bigint().to_bytes_le();
+        // let verifier_challenge_bytes = verifier_challenge_fe.into_bigint().to_bytes_le();
 
         // k - xe;
-        let prover_response = random_scalar - (verifier_challenge.mul(sk.secret_key));
+        let prover_response = random_scalar - (verifier_challenge_fe.mul(sk.secret_key));
         let signature = Signature {
             prover_response,
-            verifier_challenge: verifier_challenge_bytes,     // TODO: CONSTRAINTF<C> INTO BYTES --> var as vec<uint<constraintf<C>>>
+            verifier_challenge: verifier_challenge_fe,     // TODO: CONSTRAINTF<C> INTO BYTES --> var as vec<uint<constraintf<C>>>
+            _curve: PhantomData,
         };
 
         Ok(signature)
@@ -179,7 +183,7 @@ where
         //     prover_response,
         //     verifier_challenge,
         // } = signature;
-        // let verifier_challenge_fe = C::ScalarField::from_le_bytes_mod_order(verifier_challenge);
+        // let verifier_challenge_fe = C::BaseField::from_le_bytes_mod_order(verifier_challenge);
         // // sG = kG - eY
         // // kG = sG + eY
         // // so we first solve for kG.

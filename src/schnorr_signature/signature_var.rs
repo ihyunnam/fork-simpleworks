@@ -26,8 +26,10 @@ pub struct SignatureVar<C: CurveGroup, GC: CurveVar<C, ConstraintF>>
 where
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
 {
-    pub prover_response: Vec<UInt8<ConstraintF>>,
-    pub verifier_challenge: Vec<UInt8<ConstraintF>>,      // TODO: ADD (crate) back in for both
+    // pub prover_response: Vec<UInt8<ConstraintF>>,
+    // pub verifier_challenge: Vec<UInt8<ConstraintF>>,      // TODO: ADD (crate) back in for both
+    pub prover_response: FpVar<ConstraintF>,
+    pub verifier_challenge: FpVar<ConstraintF>,
     #[doc(hidden)]
     _group: PhantomData<GC>,
     _curve: PhantomData<C>,
@@ -38,6 +40,7 @@ where
     C: CurveGroup,
     GC: CurveVar<C, ConstraintF>,
     for<'group_ops_bounds> &'group_ops_bounds GC: GroupOpsBounds<'group_ops_bounds, C, GC>,
+    <C as CurveGroup>::BaseField: Borrow<ark_ff::Fp<MontBackend<ark_ed_on_bn254::FqConfig, 4>, 4>>,
 {
     fn new_variable<T: Borrow<Signature<C>>>(
         cs: impl Into<Namespace<ConstraintF>>,
@@ -46,24 +49,34 @@ where
     ) -> Result<Self, SynthesisError> {
         f().and_then(|val| {
             let cs = cs.into();
-            let response_bytes = val.borrow().prover_response.into_bigint().to_bytes_le();
-            let challenge_bytes = &val.borrow().verifier_challenge;
-            let mut prover_response = Vec::<UInt8<ConstraintF>>::new();
-            let mut verifier_challenge = Vec::<UInt8<ConstraintF>>::new();
-            for byte in &response_bytes {
-                prover_response.push(UInt8::<ConstraintF>::new_variable(
-                    cs.clone(),
-                    || Ok(byte),
-                    mode,
-                )?);
-            }
-            for byte in challenge_bytes {
-                verifier_challenge.push(UInt8::<ConstraintF>::new_variable(
-                    cs.clone(),
-                    || Ok(byte),
-                    mode,
-                )?);
-            }
+            // let response_bytes = val.borrow().prover_response.into_bigint().to_bytes_le();
+            // let challenge_bytes = &val.borrow().verifier_challenge;
+            // let mut prover_response = Vec::<UInt8<ConstraintF>>::new();
+            // let mut verifier_challenge = Vec::<UInt8<ConstraintF>>::new();
+            // for byte in &response_bytes {
+            //     prover_response.push(UInt8::<ConstraintF>::new_variable(
+            //         cs.clone(),
+            //         || Ok(byte),
+            //         mode,
+            //     )?);
+            // }
+            // for byte in challenge_bytes {
+            //     verifier_challenge.push(UInt8::<ConstraintF>::new_variable(
+            //         cs.clone(),
+            //         || Ok(byte),
+            //         mode,
+            //     )?);
+            // }
+            let prover_response = FpVar::<ConstraintF>::new_variable(
+                cs.clone(),
+                || Ok(val.borrow().prover_response),
+                mode,
+            ).unwrap();
+            let verifier_challenge = FpVar::<ConstraintF>::new_variable(
+                cs.clone(),
+                || Ok(val.borrow().verifier_challenge),
+                mode,
+            ).unwrap();
             Ok(SignatureVar {
                 prover_response,
                 verifier_challenge,

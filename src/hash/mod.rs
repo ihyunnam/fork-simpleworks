@@ -40,12 +40,12 @@ type PoseidonHash = PoseidonSponge<ConstraintF>;
 
 lazy_static! {
     pub static ref POSEIDON_PARAMS: PoseidonConfig<ConstraintF> = {
-        let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF>(254, 2, 8, 24, 0);
-        PoseidonConfig::<ConstraintF>::new(8, 24, 31, mds, ark, 2, 1)
+        let (ark, mds) = find_poseidon_ark_and_mds::<ConstraintF>(254, 2, 8, 31, 0);
+        PoseidonConfig::<ConstraintF>::new(8, 31, 17, mds, ark, 2, 1)
     };
 }
 
-pub fn poseidon2_hash(input: &[u8]) -> Result<ConstraintF> {
+pub fn poseidon2_hash<C: CurveGroup>(input: &[u8]) -> Result<ConstraintF> {
     // let sponge_params = helpers::poseidon_parameters_for_test()?;
     
     // pass in our hardcoded default params
